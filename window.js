@@ -1,16 +1,15 @@
 (() => {
-
+  // a window onto brooklyn: skyline, time of day and weather follow the real sky there
   const W = 78, H = 17;
   const C = {
     ink: '#605040', mid: '#807060', soft: '#a09282', faint: '#c9bfb3', frame: '#8a7a6a',
-    warm: '#c28a3e', water: '#6f8795', rain: '#aab4ba', leaf: '#7d8a5c', leaf2: '#98a270',
-    rust: '#b5864a', rust2: '#a4623c', cloth: '#a8927e',
+    warm: '#c28a3e', water: '#6f8795', rain: '#aab4ba',
   };
   const rnd = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
   const lerp = (a, b, t) => a + (b - a) * t;
   const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
-  const mix = (a, b, t) => { const A = hex(a), B = hex(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join(''); };
+  const mix = (a, b, t) => { const A = hex(a), B = hex(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * clamp(t, 0, 1)).toString(16).padStart(2, '0')).join(''); };
 
   class Grid {
     constructor() { this.ch = new Array(W * H); this.co = new Array(W * H); this.clear(); }
@@ -20,8 +19,8 @@
       if (x < 0 || y < 0 || x >= W || y >= H) return;
       this.ch[y * W + x] = ch; this.co[y * W + x] = co;
     }
+    blank(x, y) { return this.ch[Math.round(y) * W + Math.round(x)] === ' '; }
     text(x, y, s, co) { for (let i = 0; i < s.length; i++) if (s[i] !== ' ') this.set(x + i, y, s[i], co); }
-    put(x, y, s, co) { for (let i = 0; i < s.length; i++) this.set(x + i, y, s[i], co); }
     html() {
       const esc = { '<': '&lt;', '>': '&gt;', '&': '&amp;' };
       let out = '', run = '', rc = null;
@@ -59,283 +58,244 @@
     return s / n;
   }
 
-  // ---- drawing helpers ----
   const hline = (g, x0, x1, y, ch, co) => { for (let x = x0; x <= x1; x++) g.set(x, y, ch, co); };
   const vline = (g, x, y0, y1, ch, co) => { for (let y = y0; y <= y1; y++) g.set(x, y, ch, co); };
-  function box(g, x0, y0, x1, y1, h = '-', v = '|', c = '+', co = C.frame) {
+  function box(g, x0, y0, x1, y1, h, v, c, co) {
     hline(g, x0, x1, y0, h, co); hline(g, x0, x1, y1, h, co);
     vline(g, x0, y0, y1, v, co); vline(g, x1, y0, y1, v, co);
     for (const [x, y] of [[x0, y0], [x1, y0], [x0, y1], [x1, y1]]) g.set(x, y, c, co);
   }
-  // the classic double frame; panes are x 2..75, y 2..14
-  function sash(g, { vbar = true, hbar = true, co = C.frame } = {}) {
+  function frame(g) {
+    const co = C.frame;
     box(g, 0, 0, W - 1, H - 1, '=', '|', '+', co);
     box(g, 1, 1, W - 2, H - 2, '-', '|', '+', co);
-    if (vbar) for (const x of [38, 39]) { vline(g, x, 2, H - 3, '|', co); g.set(x, 1, '+', co); g.set(x, H - 2, '+', co); }
-    if (hbar) for (const y of [8, 9]) { hline(g, 2, W - 3, y, '-', co); g.set(1, y, '+', co); g.set(W - 2, y, '+', co); }
-    if (vbar && hbar) for (const x of [38, 39]) for (const y of [8, 9]) g.set(x, y, '+', co);
-  }
-  function rrect(g, x0, y0, x1, y1, co = C.frame) {
-    hline(g, x0 + 2, x1 - 2, y0, '-', co); hline(g, x0 + 2, x1 - 2, y1, '-', co);
-    g.set(x0 + 1, y0, '.', co); g.set(x1 - 1, y0, '.', co);
-    g.set(x0, y0 + 1, '/', co); g.set(x1, y0 + 1, '\\', co);
-    vline(g, x0, y0 + 2, y1 - 2, '|', co); vline(g, x1, y0 + 2, y1 - 2, '|', co);
-    g.set(x0, y1 - 1, '\\', co); g.set(x1, y1 - 1, '/', co);
-    g.set(x0 + 1, y1, "'", co); g.set(x1 - 1, y1, "'", co);
+    for (const x of [38, 39]) { vline(g, x, 2, H - 3, '|', co); g.set(x, 1, '+', co); g.set(x, H - 2, '+', co); }
   }
   // a thin line at fractional height y (row r spans r..r+1)
   function plotY(g, x, y, co) {
     const r = Math.floor(y), f = y - r;
     if (f < 0.2) g.set(x, r - 1, '_', co); else if (f < 0.65) g.set(x, r, '-', co); else g.set(x, r, '_', co);
   }
-  function flying(g, x, y, f, co = C.ink) { g.text(Math.round(x) - 1, y, ['\\v/', '-v-', '/v\\', '-v-'][f & 3], co); }
-  function ridgeChar(l, r, c) { return r < c ? '/' : l < c ? '\\' : '_'; }
 
-  // ---- murmuration ----
-  function murmuration() {
-    const B = [];
-    for (let i = 0; i < 320; i++) B.push({ x: rnd(25, 50), y: rnd(6, 18), vx: rnd(-.5, .5), vy: rnd(-.3, .3) });
-    const dens = new Uint8Array(W * H);
-    const trees = []; for (let x = 0; x < W; x++) trees[x] = fbm(x * 0.18, 0, 3, 2);
-    return (g, t, m) => {
-      const s = t / 20;
-      const ax = 38 + Math.sin(s * .21) * 15 + Math.sin(s * .57) * 6, ay = 10 + Math.sin(s * .33 + 1) * 3 + Math.sin(s * .8) * 1.5;
-      const mx = m ? m.x : -99, my = m ? (m.y - 2) * 2 : -99;
-      for (const b of B) {
-        let n = 0, cx = 0, cy = 0, vx = 0, vy = 0, sx = 0, sy = 0;
-        for (const o of B) {
-          if (o === b) continue;
-          const dx = o.x - b.x, dy = o.y - b.y, d2 = dx * dx + dy * dy;
-          if (d2 < 20) { n++; cx += dx; cy += dy; vx += o.vx; vy += o.vy; if (d2 < 2.2) { sx -= dx / d2; sy -= dy / d2; } }
-        }
-        if (n) { b.vx += cx / n * .004 + (vx / n - b.vx) * .07 + sx * .012; b.vy += cy / n * .004 + (vy / n - b.vy) * .07 + sy * .012; }
-        b.vx += (ax - b.x) * .0013; b.vy += (ay - b.y) * .002;
-        if (b.x < 3) b.vx += .06; if (b.x > 74) b.vx -= .06; if (b.y < 1) b.vy += .06; if (b.y > 20) b.vy -= .06;
-        const dx = b.x - mx, dy = b.y - my, d2 = dx * dx + dy * dy;
-        if (d2 < 70) { const d = Math.sqrt(d2) + .1; b.vx += dx / d * .3; b.vy += dy / d * .3; }
-        const sp = Math.hypot(b.vx, b.vy) || 1, k = sp > 1 ? 1 / sp : sp < .35 ? .35 / sp : 1;
-        b.vx *= k; b.vy *= k;
-      }
-      dens.fill(0);
-      for (const b of B) {
-        b.x += b.vx * .6; b.y += b.vy * .6;
-        const x = Math.round(b.x), y = Math.round(2 + b.y / 2);
-        if (x >= 2 && x <= 75 && y >= 2 && y <= 14) dens[y * W + x]++;
-      }
-      for (let x = 2; x <= 75; x++) {
-        const h = trees[x];
-        g.set(x, 14, h > .64 ? '^' : '_', C.faint);
-        if (h > .74) g.set(x, 13, '^', C.faint);
-      }
-      for (let y = 2; y <= 14; y++) for (let x = 2; x <= 75; x++) {
-        const n = dens[y * W + x]; if (!n) continue;
-        g.set(x, y, n === 1 ? '.' : n === 2 ? ':' : n < 5 ? '*' : n < 8 ? '#' : '@', n === 1 ? C.soft : n < 4 ? C.mid : C.ink);
-      }
-      sash(g, { vbar: false, hbar: false });
-    };
+  // ---- sky state: targets come from the weather, cur eases toward them ----
+  const target = { night: 0, dusk: 0, cloud: .3, rain: 0, snow: 0, fog: 0, storm: 0, wind: 6 };
+  const cur = { ...target };
+  let sun = { sr: 405, ss: 1140 };
+  let caption = '';
+
+  const WMO = {
+    0: ['clear'], 1: ['mostly clear'], 2: ['partly cloudy'], 3: ['overcast'],
+    45: ['fog', 0, 0, 0, 1], 48: ['freezing fog', 0, 0, 0, 1],
+    51: ['light drizzle', .2], 53: ['drizzle', .3], 55: ['heavy drizzle', .4], 56: ['freezing drizzle', .3], 57: ['freezing drizzle', .4],
+    61: ['light rain', .45], 63: ['rain', .7], 65: ['heavy rain', 1], 66: ['freezing rain', .5], 67: ['freezing rain', .8],
+    71: ['light snow', 0, .35], 73: ['snow', 0, .65], 75: ['heavy snow', 0, 1], 77: ['snow grains', 0, .25],
+    80: ['showers', .55], 81: ['showers', .75], 82: ['downpour', 1], 85: ['snow showers', 0, .55], 86: ['heavy snow showers', 0, .9],
+    95: ['thunderstorm', .85, 0, 1], 96: ['thunderstorm with hail', .9, 0, 1], 99: ['thunderstorm with hail', 1, 0, 1],
+  };
+  function applyCode(code, cloudPct, wind) {
+    const [label = '', rain = 0, snow = 0, storm = 0, fog = 0] = WMO[code] || [];
+    Object.assign(target, { rain, snow, storm, fog, wind, cloud: Math.max(cloudPct / 100, rain || snow || fog ? .8 : 0) });
+    return label;
+  }
+  const nyMinutes = () => {
+    const p = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' }).formatToParts(new Date());
+    const get = k => +p.find(x => x.type === k).value;
+    return (get('hour') % 24) * 60 + get('minute');
+  };
+  function setLight(m) {
+    const { sr, ss } = sun;
+    target.night = 1 - clamp((m - sr + 30) / 60, 0, 1) * clamp((ss + 30 - m) / 60, 0, 1);
+    target.dusk = Math.max(0, 1 - Math.abs(m - sr) / 45, 1 - Math.abs(m - ss) / 45);
+    target.m = m;
   }
 
-  // ---- rain on glass over a city ----
-  function rain() {
-    const back = [];
-    for (let x = 2; x <= 75;) { const w = Math.floor(rnd(3, 7)), h = Math.floor(rnd(5, 10)); for (let i = 0; i < w; i++) back[x++] = h; }
-    const bld = [];
-    for (let x = 1; x <= 76;) { const w = Math.floor(rnd(4, 9)), h = Math.floor(rnd(3, 8)); bld.push({ x0: x, x1: x + w - 1, top: 14 - h }); x += w + Math.floor(rnd(1, 4)); }
-    const lit = new Map();
-    for (const b of bld) for (let y = b.top + 2; y <= 13; y += 2) for (let x = b.x0 + 2; x < b.x1 - 1; x += 2) lit.set(y * W + x, Math.random() < .35);
-    const keys = [...lit.keys()];
-    const streaks = [...Array(28)].map(() => ({ x: rnd(2, 90), y: rnd(0, 15), v: rnd(.7, 1.1) }));
-    const trail = new Float32Array(W * H);
-    let beads = [], drops = [];
-    return g => {
-      if (Math.random() < .1) { const k = keys[Math.floor(Math.random() * keys.length)]; lit.set(k, !lit.get(k)); }
-      for (let x = 2; x <= 75; x++) {
-        const top = 14 - back[x]; g.set(x, top, '_', C.faint);
-        const pt = 14 - (back[x - 1] ?? back[x]);
-        if (pt !== top) vline(g, x, Math.min(pt, top) + 1, Math.max(pt, top), '|', C.faint);
-      }
-      for (const b of bld) {
-        for (let y = b.top; y <= 14; y++) for (let x = b.x0; x <= b.x1; x++) g.set(x, y, ' ');
-        hline(g, b.x0, b.x1, b.top, '_', C.mid);
-        vline(g, b.x0, b.top + 1, 14, '|', C.mid); vline(g, b.x1, b.top + 1, 14, '|', C.mid);
-      }
-      for (const [k, on] of lit) g.set(k % W, Math.floor(k / W), on ? '#' : '.', on ? C.warm : C.faint);
-      for (const r of streaks) {
-        r.y += r.v; r.x -= r.v * .35;
-        if (r.y > 15) { r.y = rnd(-3, 0); r.x = rnd(2, 92); }
-        const rx = Math.round(r.x), ry = Math.round(r.y);
-        if (rx >= 2 && rx <= 75 && ry >= 2 && ry <= 14 && g.ch[ry * W + rx] === ' ') g.set(rx, ry, '/', C.rain);
-      }
-      if (beads.length < 70 && Math.random() < .5) beads.push({ x: Math.floor(rnd(2, 76)), y: Math.floor(rnd(2, 15)), sz: rnd(0, .8) });
-      for (const b of beads) { b.sz += Math.random() < .03 ? .02 : 0; if (b.sz > 1) { b.dead = 1; drops.push({ x: b.x, y: b.y, vy: 0 }); } }
-      for (const d of drops) {
-        d.vy = Math.min(.35, d.vy + .01); d.y += d.vy;
-        if (Math.random() < .04) d.x += Math.random() < .5 ? -1 : 1;
-        const xi = Math.round(d.x), yi = Math.round(d.y);
-        if (yi <= 14 && xi >= 2 && xi <= 75) trail[yi * W + xi] = 1;
-        for (const b of beads) if (!b.dead && b.x === xi && Math.abs(b.y - d.y) < 1) b.dead = 1;
-        if (d.y > 14.5) d.dead = 1;
-      }
-      beads = beads.filter(b => !b.dead); drops = drops.filter(d => !d.dead);
-      for (let i = 0; i < trail.length; i++) if (trail[i] > .08) { trail[i] *= .97; g.set(i % W, Math.floor(i / W), trail[i] > .45 ? ':' : '.', C.water); }
-      for (const b of beads) g.set(b.x, b.y, b.sz < .45 ? '.' : b.sz < .8 ? ',' : 'o', C.water);
-      for (const d of drops) g.set(d.x, d.y, 'o', C.ink);
-      sash(g, { hbar: false });
-    };
+  // ?sky=rain,night etc. previews a condition instead of the live weather
+  const override = new URLSearchParams(location.search).get('sky');
+  function applyOverride() {
+    const tok = override.split(/[ ,]+/);
+    const code = { clear: 0, cloudy: 2, overcast: 3, fog: 45, drizzle: 53, rain: 63, heavy: 65, snow: 73, blizzard: 75, storm: 95 };
+    let label = 'clear';
+    for (const t of tok) if (t in code) label = applyCode(code[t], t === 'clear' ? 0 : t === 'cloudy' ? 50 : 100, t === 'storm' || t === 'blizzard' ? 25 : 8);
+    const m = tok.includes('night') ? 23 * 60 : tok.includes('dusk') ? sun.ss : tok.includes('dawn') ? sun.sr : 13 * 60;
+    setLight(m);
+    caption = `brooklyn · preview · ${label}`;
+  }
+  async function fetchWeather() {
+    try {
+      const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=40.6782&longitude=-73.9442' +
+        '&current=temperature_2m,weather_code,cloud_cover,wind_speed_10m&daily=sunrise,sunset' +
+        '&temperature_unit=fahrenheit&wind_speed_unit=mph&timezone=America%2FNew_York&forecast_days=1');
+      const d = await r.json(), c = d.current;
+      const hm = s => +s.slice(11, 13) * 60 + +s.slice(14, 16);
+      sun = { sr: hm(d.daily.sunrise[0]), ss: hm(d.daily.sunset[0]) };
+      const label = applyCode(c.weather_code, c.cloud_cover, c.wind_speed_10m);
+      caption = `brooklyn · ${Math.round(c.temperature_2m)}° · ${label}`;
+    } catch { /* keep the clock-only sky */ }
+    setLight(nyMinutes());
   }
 
-  // ---- train window ----
-  function train() {
-    return (g, t) => {
-      const s = t / 20, om = s * 1.2, oh = s * 6, of = s * 16, og = s * 26, op = s * 34;
-      g.text(58, 4, '.-.', C.warm); g.text(57, 5, '(   )', C.warm); g.text(58, 6, "'-'", C.warm);
-      const ym = wx => 4.5 + (1 - fbm(wx * .04, 0, 7, 3)) * 8;
-      const yh = wx => 9.2 + (1 - fbm(wx * .08, 3, 1, 3)) * 5;
-      for (let x = 3; x <= 74; x++) {
-        const r = Math.round(ym(x + om));
-        g.set(x, r, ridgeChar(Math.round(ym(x - 1 + om)), Math.round(ym(x + 1 + om)), r), C.soft);
-        vline(g, x, r + 1, 14, ' ');
-      }
-      for (let x = 3; x <= 74; x++) {
-        const wx = x + oh, r = Math.round(yh(wx));
-        g.set(x, r, ridgeChar(Math.round(yh(wx - 1)), Math.round(yh(wx + 1)), r), C.mid);
-        vline(g, x, r + 1, 14, ' ');
-        if (hash3(Math.floor(wx), 9, 9) < .22) { g.set(x, r - 1, '^', C.leaf); if (hash3(Math.floor(wx), 3, 3) < .5) g.set(x, r - 2, '^', C.leaf); }
-      }
-      for (let x = 3; x <= 74; x++) {
-        const wf = Math.floor(x + of), wg = Math.floor(x + og);
-        g.set(x, 13, wf % 5 === 0 ? '+' : '-', C.mid);
-        const h = hash3(wg, 1, 1);
-        g.set(x, 14, h < .15 ? ',' : h < .3 ? '.' : h < .38 ? '`' : ' ', C.soft);
-      }
-      const k0 = Math.floor(op / 60) - 1;
-      const poles = []; for (let k = k0; k <= k0 + 3; k++) poles.push(k * 60 - op + 30);
-      for (let i = 0; i < poles.length - 1; i++) for (const off of [-2, 2]) {
-        const xa = poles[i] + off, xb = poles[i + 1] + off;
-        for (let x = Math.max(3, Math.ceil(xa)); x <= Math.min(74, xb); x++) { const u = (x - xa) / (xb - xa); plotY(g, x, 4.5 + 2.4 * 4 * u * (1 - u), C.ink); }
-      }
-      for (const px of poles) {
-        const x = Math.round(px); if (x < 1 || x > 76) continue;
-        for (let y = 5; y <= 14; y++) if (x >= 3 && x <= 74) g.set(x, y, '|', C.ink);
-        [...'o-+-o'].forEach((c, i) => { if (x - 2 + i >= 3 && x - 2 + i <= 74) g.set(x - 2 + i, 4, c, C.ink); });
-      }
-      // tunnel sweeps through every ~45s
-      for (let x = 3; x <= 74; x++) {
-        const tw = (x + op + 600) % 1500;
-        if (tw < 95) {
-          vline(g, x, 2, 14, ':', C.soft);
-          if (tw < 1.2 || tw > 93.8) vline(g, x, 2, 14, '|', C.ink);
-          if (Math.floor(x + op) % 24 === 0) g.set(x, 3, '*', C.warm);
-        }
-      }
-      rrect(g, 0, 0, W - 1, H - 1); rrect(g, 2, 1, W - 3, H - 2);
-    };
+  // ---- the scene ----
+  const back = [];
+  for (let x = 2; x <= 75;) { const w = Math.floor(rnd(3, 7)), h = Math.floor(rnd(5, 10)); for (let i = 0; i < w; i++) back[x++] = h; }
+  const bld = [];
+  for (let x = 1; x <= 76;) {
+    const w = Math.floor(rnd(4, 9)), h = Math.floor(rnd(3, 10)), top = 14 - h;
+    bld.push({ x0: x, x1: x + w - 1, top, tower: w >= 5 && top >= 5 && Math.random() < .45 ? x + 1 + Math.floor(rnd(0, w - 4)) : 0 });
+    x += w + Math.floor(rnd(1, 4));
   }
+  const roofAt = x => { for (const b of bld) if (x >= b.x0 && x <= b.x1) return b.tower && x >= b.tower && x <= b.tower + 2 ? b.top - 3 : b.top; return 14; };
+  const wins = [];
+  for (const b of bld) for (let y = b.top + 2; y <= 13; y += 2) for (let x = b.x0 + 2; x < b.x1 - 1; x += 2) wins.push({ x, y, r: Math.random() });
+  const stars = [...Array(40)].map(() => ({ x: Math.floor(rnd(2, 76)), y: Math.floor(rnd(2, 9)), p: rnd(0, 6), r: Math.random() }));
+  const streaks = [...Array(55)].map((_, i) => ({ x: rnd(2, 95), y: rnd(0, 15), v: rnd(.7, 1.1), r: i / 55 }));
+  const flakes = [];
+  [[.07, '.'], [.12, '+'], [.2, '*']].forEach(([v, ch], l) => { for (let k = 0; k < [55, 28, 10][l]; k++) flakes.push({ l, v, ch, x: rnd(0, W), y: rnd(-2, 15), ph: rnd(0, 6), r: Math.random() }); });
+  const pile = new Float32Array(W);
+  const trail = new Float32Array(W * H);
+  let beads = [], drops = [], bolt = null;
 
-  // ---- day and night ----
-  function daynight(ctx) {
-    const stars = [...Array(45)].map(() => ({ x: Math.floor(rnd(2, 76)), y: Math.floor(rnd(2, 10)), p: rnd(0, 6) }));
-    const ridge = []; for (let x = 0; x < W; x++) ridge[x] = x >= 50 && x <= 64 ? 13 : Math.min(13, Math.round(10.2 + fbm(x * .06, 5, 5, 3) * 4));
-    const birds = [...Array(3)].map((_, i) => ({ x: i * 25 + rnd(0, 10), y: rnd(3, 7), ph: Math.floor(rnd(0, 4)) }));
-    const house = ['  _||____', ' /       \\', '/_________\\', ' | []  []|'];
-    let shoot = null;
-    return (g, t) => {
-      const s = t / 20, th = (s / 72 % 1) * Math.PI * 2 + .15, e = Math.sin(th);
-      const night = clamp((-e + .12) / .32, 0, 1), dusk = clamp(1 - Math.abs(e) / .35, 0, 1);
-      ctx.glass.style.background = mix(mix('#f3f4f1', '#f2dcc3', dusk), '#2f2d36', night);
-      const ink = mix(C.ink, '#e8e0d0', night), soft = mix(C.soft, '#8d889a', night), faint = mix(C.faint, '#5a5664', night);
-      if (night > .15) for (const st of stars) {
-        const v = Math.sin(s * 2 + st.p * 7);
-        g.set(st.x, st.y, v > .85 ? '*' : v > 0 ? '+' : '.', mix(faint, '#f3ead6', night * (v > 0 ? 1 : .5)));
-      }
-      if (night > .6 && !shoot && Math.random() < .006) shoot = { x: rnd(20, 70), y: 2, l: 0 };
-      if (shoot) {
-        shoot.l++; for (let i = 0; i < 4; i++) g.set(shoot.x - (shoot.l - i) * 1.4, shoot.y + (shoot.l - i) * .45, i === 0 ? '*' : '-', ink);
-        if (shoot.l > 14) shoot = null;
-      }
-      const sx = 38 - Math.cos(th) * 34, sy = 11.5 - Math.sin(th) * 9.5;
-      g.text(Math.round(sx) - 1, sy, '-O-', mix(C.warm, '#e0a060', dusk));
-      g.set(76 - sx, 23 - sy, 'C', '#efe6d2');
-      if (night < .4) for (const b of birds) {
-        b.x += .22; if (b.x > 80) { b.x = -5; b.y = rnd(3, 7); }
-        flying(g, b.x, b.y + Math.sin(s + b.ph) * .5, Math.floor(t / 3) + b.ph, ink);
-      }
-      for (let x = 2; x <= 75; x++) {
-        const r = ridge[x]; vline(g, x, r, 14, ' ');
-        g.set(x, r, ridgeChar(ridge[x - 1] ?? r, ridge[x + 1] ?? r, r), soft);
-        for (let y = r + 1; y <= 14; y++) { const h = hash3(x, y, 4); if (h < .25) g.set(x, y, h < .1 ? ',' : "'", faint); }
-      }
-      house.forEach((row, i) => g.put(52, 10 + i, row, soft));
-      for (const x of [55, 59]) g.text(x, 13, '[]', night > .45 ? C.warm : soft);
-      sash(g);
-    };
-  }
+  const moonPhase = () => (((Date.now() - Date.UTC(2000, 0, 6, 18, 14)) / 864e5 / 29.530588) % 1 + 1) % 1;
+  const moonChar = p => p < .03 || p > .97 ? '' : p < .19 ? ')' : p < .31 ? 'D' : p < .69 ? 'O' : p < .81 ? 'C' : '(';
 
-  // ---- snow ----
-  function snow() {
-    const L = [{ n: 55, ch: '.', v: .07, co: C.faint }, { n: 28, ch: '+', v: .12, co: C.soft }, { n: 10, ch: '*', v: .2, co: C.mid }];
-    const fl = [];
-    L.forEach((l, i) => { for (let k = 0; k < l.n; k++) fl.push({ l: i, x: rnd(0, W), y: rnd(-2, 15), ph: rnd(0, 6), land: Math.random() < .5 }); });
-    const hT = new Float32Array(W).fill(.2), hB = new Float32Array(W).fill(.3);
-    const pane = x => (x >= 2 && x <= 37) || (x >= 40 && x <= 75);
-    let smoke = [];
-    const trees = [[6, 11], [13, 10], [28, 11], [44, 10]];
-    const tree = ['  /\\', ' /  \\', '/____\\', '  ||'];
-    function pile(g, h, base) {
-      for (let x = 2; x <= 75; x++) {
-        if (!pane(x)) continue;
-        const e = base - h[x], r = Math.floor(e);
-        for (let y = r + 1; y < base; y++) g.set(x, y, ' ');
-        const sl = (h[x + 1] ?? h[x]) - (h[x - 1] ?? h[x]);
-        if (Math.abs(sl) > .8) g.set(x, r, sl > 0 ? '/' : '\\', C.soft);
-        else plotY(g, x, e, C.soft);
-      }
+  function step(g, t, glass) {
+    for (const k in cur) if (k !== 'm') cur[k] += (target[k] - cur[k]) * .01;
+    const s = t / 20, n = cur.night, m = target.m ?? 720;
+    const ink = mix(C.ink, '#ebe3d3', n), mid = mix(C.mid, '#aaa294', n), soft = mix(C.soft, '#86818f', n);
+    const faint = mix(C.faint, '#55515c', n), water = mix(C.water, '#a3b6c2', n), warm = mix(C.warm, '#dca453', n);
+    const wet = Math.max(cur.rain, cur.snow * .6);
+    let bg = mix('#f3f4f1', '#dfe0dd', cur.cloud * .6 + wet * .5);
+    bg = mix(bg, mix('#f1d6b8', '#d8cdc4', cur.cloud), cur.dusk * (1 - n * .6));
+    bg = mix(bg, mix('#2c2a35', '#3b3537', cur.cloud), n);
+    const fogged = c => mix(c, bg, cur.fog * .55);
+    if (bolt && (bolt.f < 2 || bolt.f === 3)) bg = mix(bg, '#f6f4fb', .85);
+    if (glass.dataset.bg !== bg) { glass.style.background = bg; glass.dataset.bg = bg; }
+
+    // sky
+    if (n > .3) for (const st of stars) {
+      if (st.r < cur.cloud * 1.15) continue;
+      const v = Math.sin(s * 2 + st.p * 7);
+      g.set(st.x, st.y, v > .85 ? '*' : v > 0 ? '+' : '.', mix(faint, '#f3ead6', (n - .3) * (v > 0 ? 1.2 : .6)));
     }
-    function settle(h, cap) {
-      for (let x = 2; x < 75; x++) { const d = h[x] - h[x + 1]; h[x] -= d * (Math.abs(d) > .5 ? .15 : .04); h[x + 1] += d * (Math.abs(d) > .5 ? .15 : .04); }
-      for (let x = 0; x < W; x++) h[x] = Math.min(cap, h[x] * .99992);
+    const dayFrac = (m - sun.sr) / (sun.ss - sun.sr);
+    if (n < .85 && cur.cloud < .85 && dayFrac > 0 && dayFrac < 1)
+      g.text(Math.round(5 + dayFrac * 67) - 1, 7.5 - Math.sin(dayFrac * Math.PI) * 5, '-O-', mix(C.warm, '#d9803f', cur.dusk));
+    const mc = moonChar(moonPhase());
+    if (n > .3 && mc && cur.cloud < .85) {
+      const nf = (((m - sun.ss) % 1440 + 1440) % 1440) / (1440 - (sun.ss - sun.sr));
+      if (nf < 1) g.set(5 + nf * 67, 7.5 - Math.sin(nf * Math.PI) * 5, mc, '#efe6d2');
     }
-    return (g, t) => {
-      const s = t / 20, wind = .12 + .22 * Math.sin(s * .15) + .2 * (noise3(s * .3, 0, 0) - .5);
-      trees.forEach(([x0, y0]) => tree.forEach((row, i) => g.text(x0, y0 + i - 1, row, C.faint)));
-      const hx = 56;
-      ['    _||_', '  /      \\', ' /________\\', ' |  #   _ |', ' |      | ||'].forEach((row, i) => g.put(hx, 10 + i, row, C.soft));
-      g.set(hx + 4, 13, '#', C.warm);
-      if (t % 3 === 0) smoke.push({ x: hx + 6, y: 9, a: 0 });
-      for (const p of smoke) { p.a++; p.y -= .08; p.x += wind * .35 + Math.sin(p.a * .2) * .05; }
-      smoke = smoke.filter(p => p.a < 70 && p.y > 2);
-      for (const p of smoke) g.set(p.x, p.y, p.a < 15 ? '(' : p.a < 35 ? (p.a & 4 ? ')' : '(') : '.', p.a < 30 ? C.soft : C.faint);
-      for (const f of fl) {
-        const l = L[f.l];
-        f.x += wind * (.5 + f.l * .5) + Math.sin(s * 1.5 + f.ph) * .05; f.y += l.v;
-        const xi = Math.round(f.x), yi = f.y;
-        let landed = false;
-        if (f.l > 0 && xi >= 0 && xi < W && pane(xi)) {
-          if (f.land && yi < 8 && yi >= 8 - hT[xi] - .5) { hT[xi] += .2; landed = true; }
-          else if (yi >= 15 - hB[xi] - .5) { hB[xi] += .15; landed = true; }
-        }
-        if (landed || f.y > 15 || f.x > W + 2 || f.x < -3) { f.y = rnd(-2, 0); f.x = rnd(-10, W); f.land = Math.random() < .5; }
-        else g.set(f.x, f.y, l.ch, l.co);
-      }
-      settle(hT, 1.6); settle(hB, 2.8);
-      pile(g, hT, 8); pile(g, hB, 15);
-      sash(g);
-    };
+    const th = .74 - cur.cloud * .42;
+    for (let y = 2; y <= 10; y++) for (let x = 2; x <= 75; x++) {
+      const d = fbm(x * .05 + s * (.015 + cur.wind * .003), y * .2, s * .01, 3) + (y - 2) * .012;
+      if (d < th) continue;
+      const e = d - th;
+      if (e < .035) g.set(x, y, '.', wet > .3 ? soft : faint);
+      else if (e < .07) g.set(x, y, hash3(x, y, 7) < .5 ? '-' : '~', wet > .3 ? soft : faint);
+      else if (hash3(x, y, 3) < .12) g.set(x, y, '.', faint);
+    }
+
+    // skyline
+    if (cur.fog < .6) for (let x = 2; x <= 75; x++) {
+      const top = 14 - back[x], co = fogged(faint);
+      g.set(x, top, '_', co);
+      const pt = 14 - (back[x - 1] ?? back[x]);
+      if (pt !== top) vline(g, x, Math.min(pt, top) + 1, Math.max(pt, top), '|', co);
+    }
+    const bc = fogged(mid);
+    for (const b of bld) {
+      for (let y = b.top; y <= 14; y++) for (let x = b.x0; x <= b.x1; x++) g.set(x, y, ' ');
+      hline(g, b.x0, b.x1, b.top, '_', bc);
+      vline(g, b.x0, b.top + 1, 14, '|', bc); vline(g, b.x1, b.top + 1, 14, '|', bc);
+      if (b.tower) { g.text(b.tower, b.top - 3, ' A', bc); g.text(b.tower, b.top - 2, '|_|', bc); g.text(b.tower, b.top - 1, '/ \\', bc); }
+    }
+    if (Math.random() < .08) wins[Math.floor(Math.random() * wins.length)].r = Math.random();
+    const litFrac = .05 + .42 * n + .1 * cur.dusk;
+    for (const w of wins) g.set(w.x, w.y, w.r < litFrac ? '#' : '.', w.r < litFrac ? fogged(warm) : fogged(faint));
+
+    if (cur.fog > .05) for (let y = 4; y <= 14; y++) for (let x = 2; x <= 75; x++) {
+      const v = fbm(x * .04 - s * .06, y * .45, 9, 2);
+      if (v > .6 - cur.fog * .12 && hash3(x, y, 5) < .55) g.set(x, y, v > .64 ? '~' : '-', faint);
+    }
+
+    // rain behind the glass
+    const slant = clamp(.18 + cur.wind / 35, .18, .9);
+    for (const r of streaks) {
+      r.y += r.v; r.x -= r.v * slant;
+      if (r.y > 15) { r.y = rnd(-3, 0); r.x = rnd(2, 80 + 15 * slant); }
+      if (r.r < cur.rain && r.x >= 2 && r.x <= 75 && r.y >= 2 && g.blank(r.x, r.y)) g.set(r.x, r.y, '/', mix(C.rain, '#7d8a93', n));
+    }
+    // lightning
+    if (!bolt && cur.storm > .5 && Math.random() < .005) {
+      let x = rnd(12, 64), pts = [];
+      for (let y = 2; y < roofAt(Math.round(x)); y++) { const dx = Math.floor(rnd(-1, 2)); pts.push([x, y, dx < 0 ? '/' : dx > 0 ? '\\' : '|']); x += dx; }
+      bolt = { f: 0, pts };
+    }
+    if (bolt) { if (bolt.f < 5) for (const [x, y, ch] of bolt.pts) g.set(x, y, ch, bolt.f < 2 ? '#4a4652' : ink); if (++bolt.f > 60) bolt = null; }
+
+    // snow
+    for (const f of flakes) {
+      f.x += cur.wind / 40 * (.5 + f.l * .5) + Math.sin(s * 1.5 + f.ph) * .05; f.y += f.v;
+      const xi = Math.round(f.x);
+      if (f.l > 0 && xi >= 2 && xi <= 75 && f.y >= 15 - pile[xi] - .5 && f.r < cur.snow) { pile[xi] += .12; f.y = 99; }
+      if (f.y > 15 || f.x > W + 2) { f.y = rnd(-2, 0); f.x = rnd(-12, W); }
+      else if (f.r < cur.snow) g.set(f.x, f.y, f.ch, [faint, soft, ink][f.l]);
+    }
+    for (let x = 2; x < 75; x++) { const d = pile[x] - pile[x + 1]; pile[x] -= d * .06; pile[x + 1] += d * .06; }
+    for (let x = 0; x < W; x++) pile[x] = Math.min(2.6, pile[x] * (cur.snow > .05 ? .99995 : .999));
+    for (let x = 2; x <= 75; x++) {
+      if (pile[x] < .15 || x === 38 || x === 39) continue;
+      const e = 15 - pile[x];
+      for (let y = Math.floor(e) + 1; y < 15; y++) g.set(x, y, ' ');
+      plotY(g, x, e, soft);
+    }
+
+    // drops on the glass
+    if (cur.rain > .05 && beads.length < 10 + cur.rain * 60 && Math.random() < cur.rain * .6)
+      beads.push({ x: Math.floor(rnd(2, 76)), y: Math.floor(rnd(2, 15)), sz: rnd(0, .8) });
+    for (const b of beads) {
+      if (cur.rain > .05) { b.sz += Math.random() < .03 ? .02 : 0; if (b.sz > 1) { b.dead = 1; drops.push({ x: b.x, y: b.y, vy: 0 }); } }
+      else if ((b.sz -= .002) < 0) b.dead = 1;
+    }
+    for (const d of drops) {
+      d.vy = Math.min(.35, d.vy + .01); d.y += d.vy;
+      if (Math.random() < .04) d.x += Math.random() < .5 ? -1 : 1;
+      const xi = Math.round(d.x), yi = Math.round(d.y);
+      if (yi <= 14 && xi >= 2 && xi <= 75) trail[yi * W + xi] = 1;
+      for (const b of beads) if (!b.dead && b.x === xi && Math.abs(b.y - d.y) < 1) b.dead = 1;
+      if (d.y > 14.5) d.dead = 1;
+    }
+    beads = beads.filter(b => !b.dead); drops = drops.filter(d => !d.dead);
+    for (let i = 0; i < trail.length; i++) if (trail[i] > .08) { trail[i] *= .97; g.set(i % W, Math.floor(i / W), trail[i] > .45 ? ':' : '.', water); }
+    for (const b of beads) g.set(b.x, b.y, b.sz < .45 ? '.' : b.sz < .8 ? ',' : 'o', water);
+    for (const d of drops) g.set(d.x, d.y, 'o', ink);
+
+    frame(g);
   }
 
-  const PICKS = [murmuration, rain, train, daynight, snow];
   const win = document.getElementById('orbit-win'), pre = document.getElementById('orbit-strip');
-  const glass = win.querySelector('.glass');
-  const g = new Grid(), fn = PICKS[Math.floor(Math.random() * PICKS.length)]({ glass });
-  let t = 0, mouse = null, visible = true;
-  win.addEventListener('pointermove', e => { const r = win.getBoundingClientRect(); mouse = { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H }; });
-  win.addEventListener('pointerleave', () => { mouse = null; });
+  const glass = win.querySelector('.glass'), cap = document.getElementById('orbit-caption');
+  const g = new Grid();
+  let t = 0, visible = true, started = false;
   new IntersectionObserver(([en]) => { visible = en.isIntersecting; }).observe(win);
-  for (let i = 0; i < 40; i++) { g.clear(); fn(g, t++, null); }
-  const tick = () => { g.clear(); fn(g, t++, mouse); pre.innerHTML = g.html(); };
-  tick();
-  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  const tick = () => {
+    g.clear(); step(g, t++, glass); pre.innerHTML = g.html();
+    if (cap && cap.textContent !== caption) cap.textContent = caption;
+  };
+  function start() {
+    if (started) return; started = true;
+    Object.assign(cur, target);
+    for (let i = 0; i < 60; i++) { g.clear(); step(g, t++, glass); }
+    tick();
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     let last = 0;
     (function loop(ts) { if (ts - last > 50 && visible && !document.hidden) { last = ts; tick(); } requestAnimationFrame(loop); })(0);
+  }
+  if (override) { applyOverride(); start(); }
+  else {
+    setLight(nyMinutes());
+    fetchWeather().then(start);
+    setTimeout(start, 1500);
+    setInterval(fetchWeather, 15 * 60 * 1000);
+    setInterval(() => setLight(nyMinutes()), 60 * 1000);
   }
 })();

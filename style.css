@@ -61,6 +61,13 @@ header {
   overflow: hidden;
 }
 
+#orbit-caption {
+  min-height: 1.2em;
+  margin-top: 4px;
+  color: var(--orbit-ink);
+  text-align: right;
+}
+
 h1 {
   font-size: 1.5rem;
   font-weight: 400;
