@@ -1,5 +1,22 @@
 [
   {
+    "code": "fra",
+    "name": "Reality Fracture",
+    "released": "2026-10-02",
+    "boosterTypes": [
+      "play",
+      "collector"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "play",
+    "limitedLabel": "play",
+    "mtgjsonBoosterTypes": [
+      "collector",
+      "play"
+    ],
+    "extraSheetLabel": "the list / special guests"
+  },
+  {
     "code": "slz",
     "name": "The Zeta Set",
     "released": "2026-09-02",
