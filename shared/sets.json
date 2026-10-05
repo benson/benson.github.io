@@ -2041,6 +2041,7 @@
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
       "draft",
+      "duelspromo",
       "six"
     ],
     "extraSheetLabel": null
@@ -3051,7 +3052,8 @@
     "limitedBoosterType": "draft",
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
-      "draft"
+      "draft",
+      "preview"
     ],
     "extraSheetLabel": null
   },
@@ -3102,8 +3104,8 @@
     "extraSheetLabel": null
   },
   {
-    "code": "rin",
-    "name": "Rinascimento",
+    "code": "ren",
+    "name": "Renaissance",
     "released": "1995-08-01",
     "boosterTypes": [
       "play"
@@ -3117,8 +3119,8 @@
     "extraSheetLabel": null
   },
   {
-    "code": "ren",
-    "name": "Renaissance",
+    "code": "rin",
+    "name": "Rinascimento",
     "released": "1995-08-01",
     "boosterTypes": [
       "play"
