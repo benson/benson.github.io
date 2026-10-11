@@ -1,6 +1,62 @@
 {
-  "blurb": "played 14 aram mayhem games and 2 cherry games in the last week, went 7-9 overall",
+  "blurb": "played 18 aram mayhem games and 2 cherry games in the last week, went 10-10 overall",
   "recent": [
+    {
+      "gameId": "5657698354",
+      "startedAt": 1791651202951,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "TwistedFate",
+      "win": true,
+      "kills": 10,
+      "deaths": 17,
+      "assists": 36,
+      "damage": 48457,
+      "minutes": 23
+    },
+    {
+      "gameId": "5656573309",
+      "startedAt": 1791491513195,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Nunu",
+      "win": true,
+      "kills": 24,
+      "deaths": 14,
+      "assists": 36,
+      "damage": 64415,
+      "minutes": 22
+    },
+    {
+      "gameId": "5656569623",
+      "startedAt": 1791490558216,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Hecarim",
+      "win": true,
+      "kills": 15,
+      "deaths": 11,
+      "assists": 24,
+      "damage": 44642,
+      "minutes": 14
+    },
+    {
+      "gameId": "5656139812",
+      "startedAt": 1791418455679,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Renekton",
+      "win": false,
+      "kills": 4,
+      "deaths": 13,
+      "assists": 19,
+      "damage": 16001,
+      "minutes": 15
+    },
     {
       "gameId": "5656109116",
       "startedAt": 1791415915479,
@@ -14,64 +70,8 @@
       "assists": 29,
       "damage": 68594,
       "minutes": 24
-    },
-    {
-      "gameId": "5656102362",
-      "startedAt": 1791414790904,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Tristana",
-      "win": true,
-      "kills": 15,
-      "deaths": 15,
-      "assists": 19,
-      "damage": 47779,
-      "minutes": 17
-    },
-    {
-      "gameId": "5656088945",
-      "startedAt": 1791412337186,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "LeeSin",
-      "win": true,
-      "kills": 8,
-      "deaths": 10,
-      "assists": 24,
-      "damage": 20566,
-      "minutes": 16
-    },
-    {
-      "gameId": "5656064502",
-      "startedAt": 1791411323851,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Nunu",
-      "win": true,
-      "kills": 9,
-      "deaths": 14,
-      "assists": 27,
-      "damage": 14828,
-      "minutes": 15
-    },
-    {
-      "gameId": "5656014568",
-      "startedAt": 1791403007191,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "MonkeyKing",
-      "win": true,
-      "kills": 20,
-      "deaths": 9,
-      "assists": 15,
-      "damage": 27324,
-      "minutes": 14
     }
   ],
   "ddragonVersion": "16.20.1",
-  "date": "2026-10-10"
+  "date": "2026-10-11"
 }
