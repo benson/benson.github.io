@@ -1,7 +1,63 @@
 {
   "schemaVersion": 1,
-  "capturedAt": "2026-10-08T00:00:14.796Z",
+  "capturedAt": "2026-10-11T00:00:15.228Z",
   "games": [
+    {
+      "gameId": "5657698354",
+      "startedAt": 1791651202951,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "TwistedFate",
+      "win": true,
+      "kills": 10,
+      "deaths": 17,
+      "assists": 36,
+      "damage": 48457,
+      "minutes": 23
+    },
+    {
+      "gameId": "5656573309",
+      "startedAt": 1791491513195,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Nunu",
+      "win": true,
+      "kills": 24,
+      "deaths": 14,
+      "assists": 36,
+      "damage": 64415,
+      "minutes": 22
+    },
+    {
+      "gameId": "5656569623",
+      "startedAt": 1791490558216,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Hecarim",
+      "win": true,
+      "kills": 15,
+      "deaths": 11,
+      "assists": 24,
+      "damage": 44642,
+      "minutes": 14
+    },
+    {
+      "gameId": "5656139812",
+      "startedAt": 1791418455679,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Renekton",
+      "win": false,
+      "kills": 4,
+      "deaths": 13,
+      "assists": 19,
+      "damage": 16001,
+      "minutes": 15
+    },
     {
       "gameId": "5656109116",
       "startedAt": 1791415915479,
@@ -1345,62 +1401,6 @@
       "assists": 41,
       "damage": 62477,
       "minutes": 19
-    },
-    {
-      "gameId": "5641519075",
-      "startedAt": 1789334699920,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Chogath",
-      "win": true,
-      "kills": 21,
-      "deaths": 8,
-      "assists": 26,
-      "damage": 55004,
-      "minutes": 23
-    },
-    {
-      "gameId": "5641510254",
-      "startedAt": 1789334482222,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Zyra",
-      "win": true,
-      "kills": 1,
-      "deaths": 0,
-      "assists": 0,
-      "damage": 895,
-      "minutes": 2
-    },
-    {
-      "gameId": "5640981058",
-      "startedAt": 1789264707321,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Teemo",
-      "win": true,
-      "kills": 11,
-      "deaths": 13,
-      "assists": 25,
-      "damage": 32027,
-      "minutes": 16
-    },
-    {
-      "gameId": "5640800854",
-      "startedAt": 1789248738314,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Zilean",
-      "win": false,
-      "kills": 1,
-      "deaths": 15,
-      "assists": 52,
-      "damage": 31778,
-      "minutes": 26
     }
   ]
 }
