@@ -13,6 +13,8 @@
     "mtgjsonBoosterTypes": [
       "collector",
       "play",
+      "promo",
+      "promo-foil",
       "secret-lair-bundle-promo"
     ],
     "extraSheetLabel": "the list / special guests"
@@ -91,7 +93,9 @@
       "prerelease-prismari",
       "prerelease-quandrix",
       "prerelease-silverquill",
-      "prerelease-witherbloom"
+      "prerelease-witherbloom",
+      "promo",
+      "promo-foil"
     ],
     "extraSheetLabel": "the list / special guests"
   },
@@ -130,7 +134,9 @@
       "collector",
       "play",
       "play-arena",
-      "prerelease"
+      "prerelease",
+      "promo",
+      "promo-foil"
     ],
     "extraSheetLabel": "the list / special guests"
   },
@@ -208,7 +214,9 @@
       "collector-sample",
       "play",
       "play-arena",
-      "prerelease"
+      "prerelease",
+      "promo",
+      "promo-foil"
     ],
     "extraSheetLabel": "the list / special guests"
   },
@@ -256,7 +264,9 @@
       "prerelease-jeskai",
       "prerelease-mardu",
       "prerelease-sultai",
-      "prerelease-temur"
+      "prerelease-temur",
+      "promo",
+      "promo-foil"
     ],
     "extraSheetLabel": "the list / special guests"
   },
@@ -277,7 +287,9 @@
       "collector-sample",
       "play",
       "play-arena",
-      "prerelease"
+      "prerelease",
+      "promo",
+      "promo-foil"
     ],
     "extraSheetLabel": "the list / special guests"
   },
@@ -350,7 +362,9 @@
       "nightmare",
       "play",
       "play-arena",
-      "prerelease"
+      "prerelease",
+      "promo",
+      "promo-foil"
     ],
     "extraSheetLabel": "the list / special guests"
   },
@@ -371,6 +385,8 @@
       "play",
       "play-arena",
       "prerelease",
+      "promo",
+      "promo-foil",
       "value"
     ],
     "extraSheetLabel": "the list / special guests"
@@ -443,7 +459,9 @@
       "collector-sample",
       "play",
       "play-arena",
-      "prerelease"
+      "prerelease",
+      "promo",
+      "promo-foil"
     ],
     "extraSheetLabel": "the big score / special guests"
   },
@@ -495,7 +513,9 @@
       "collector-sample",
       "play",
       "play-arena",
-      "prerelease"
+      "prerelease",
+      "promo",
+      "promo-foil"
     ],
     "extraSheetLabel": "the list / special guests"
   },
@@ -537,6 +557,8 @@
       "collector-sample",
       "draft",
       "prerelease",
+      "promo",
+      "promo-foil",
       "set"
     ],
     "extraSheetLabel": "the list / special guests"
@@ -574,6 +596,8 @@
       "collector-sample",
       "draft",
       "prerelease",
+      "promo",
+      "promo-foil",
       "set"
     ],
     "extraSheetLabel": "the list"
@@ -658,6 +682,8 @@
       "draft",
       "jumpstart",
       "prerelease",
+      "promo",
+      "promo-foil",
       "set"
     ],
     "extraSheetLabel": "the list"
@@ -681,6 +707,8 @@
       "draft",
       "jumpstart",
       "prerelease",
+      "promo",
+      "promo-foil",
       "set"
     ],
     "extraSheetLabel": "the list"
@@ -752,6 +780,8 @@
       "gift-bundle-transformers",
       "jumpstart",
       "prerelease",
+      "promo",
+      "promo-foil",
       "set"
     ],
     "extraSheetLabel": "the list"
@@ -793,6 +823,8 @@
       "draft",
       "jumpstart",
       "prerelease",
+      "promo",
+      "promo-foil",
       "set"
     ],
     "extraSheetLabel": "the list"
@@ -855,6 +887,8 @@
       "prerelease-maestros",
       "prerelease-obscura",
       "prerelease-riveteers",
+      "promo",
+      "promo-foil",
       "set",
       "theme-brokers",
       "theme-cabaretti",
@@ -880,6 +914,8 @@
       "collector",
       "draft",
       "prerelease",
+      "promo",
+      "promo-foil",
       "set",
       "theme-b",
       "theme-g",
@@ -948,6 +984,8 @@
       "collector",
       "draft",
       "prerelease",
+      "promo",
+      "promo-foil",
       "set",
       "theme-b",
       "theme-g",
@@ -974,6 +1012,8 @@
       "collector",
       "draft",
       "prerelease",
+      "promo",
+      "promo-foil",
       "set",
       "theme-b",
       "theme-dungeons",
@@ -1024,6 +1064,8 @@
       "prerelease-quandrix",
       "prerelease-silverquill",
       "prerelease-witherbloom",
+      "promo",
+      "promo-foil",
       "set",
       "set-jp",
       "theme-lorehold",
@@ -1065,6 +1107,8 @@
       "collector",
       "draft",
       "prerelease",
+      "promo",
+      "promo-foil",
       "set",
       "theme-b",
       "theme-g",
@@ -1108,6 +1152,8 @@
       "collector",
       "draft",
       "prerelease",
+      "promo",
+      "promo-foil",
       "set",
       "theme-b",
       "theme-g",
@@ -1165,7 +1211,9 @@
       "arena",
       "collector",
       "draft",
-      "prerelease"
+      "prerelease",
+      "promo",
+      "promo-foil"
     ],
     "extraSheetLabel": null
   },
@@ -1204,6 +1252,8 @@
       "draft",
       "jp",
       "prerelease",
+      "promo",
+      "promo-foil",
       "theme-b",
       "theme-g",
       "theme-monsters",
@@ -1229,6 +1279,8 @@
       "collector",
       "draft",
       "prerelease",
+      "promo",
+      "promo-foil",
       "theme-b",
       "theme-g",
       "theme-r",
@@ -1270,6 +1322,8 @@
       "collector",
       "draft",
       "prerelease",
+      "promo",
+      "promo-foil",
       "theme-b",
       "theme-g",
       "theme-r",
@@ -1292,6 +1346,8 @@
       "arena",
       "draft",
       "prerelease",
+      "promo",
+      "promo-foil",
       "theme-b",
       "theme-g",
       "theme-r",
@@ -1345,6 +1401,7 @@
       "draft",
       "jp",
       "prerelease",
+      "showdown",
       "theme-b",
       "theme-g",
       "theme-r",
@@ -1373,6 +1430,7 @@
       "prerelease-orzhov",
       "prerelease-rakdos",
       "prerelease-simic",
+      "showdown",
       "theme-azorius",
       "theme-gruul",
       "theme-orzhov",
@@ -1415,6 +1473,7 @@
       "prerelease-golgari",
       "prerelease-izzet",
       "prerelease-selesnya",
+      "showdown",
       "theme-boros",
       "theme-dimir",
       "theme-golgari",
@@ -1436,7 +1495,8 @@
     "mtgjsonBoosterTypes": [
       "arena",
       "draft",
-      "prerelease"
+      "prerelease",
+      "showdown"
     ],
     "extraSheetLabel": null
   },
@@ -1485,6 +1545,7 @@
       "arena",
       "draft",
       "prerelease",
+      "showdown",
       "theme-b",
       "theme-g",
       "theme-r",
@@ -1521,7 +1582,8 @@
     "mtgjsonBoosterTypes": [
       "arena",
       "draft",
-      "prerelease"
+      "prerelease",
+      "showdown"
     ],
     "extraSheetLabel": null
   },
@@ -1569,6 +1631,7 @@
       "arena",
       "draft",
       "prerelease",
+      "showdown",
       "treasure-chest"
     ],
     "extraSheetLabel": null
@@ -1585,7 +1648,8 @@
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
       "draft",
-      "prerelease"
+      "prerelease",
+      "showdown"
     ],
     "extraSheetLabel": null
   },
@@ -1601,7 +1665,8 @@
     "limitedLabel": "draft booster",
     "mtgjsonBoosterTypes": [
       "draft",
-      "prerelease"
+      "prerelease",
+      "showdown"
     ],
     "extraSheetLabel": null
   },
@@ -1649,7 +1714,8 @@
     "mtgjsonBoosterTypes": [
       "buyabox",
       "draft",
-      "prerelease"
+      "prerelease",
+      "showdown"
     ],
     "extraSheetLabel": null
   },
