@@ -1,5 +1,5 @@
 {
-  "blurb": "played 3 aram mayhem games in the last week, went 3-0",
+  "blurb": "played 1 aram mayhem game in the last week, went 1-0",
   "recent": [
     {
       "gameId": "5657698354",
@@ -14,34 +14,6 @@
       "assists": 36,
       "damage": 48457,
       "minutes": 23
-    },
-    {
-      "gameId": "5656573309",
-      "startedAt": 1791491513195,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Nunu",
-      "win": true,
-      "kills": 24,
-      "deaths": 14,
-      "assists": 36,
-      "damage": 64415,
-      "minutes": 22
-    },
-    {
-      "gameId": "5656569623",
-      "startedAt": 1791490558216,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Hecarim",
-      "win": true,
-      "kills": 15,
-      "deaths": 11,
-      "assists": 24,
-      "damage": 44642,
-      "minutes": 14
     }
   ],
   "ddragonVersion": "16.20.1",
