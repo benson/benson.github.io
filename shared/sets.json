@@ -1,5 +1,20 @@
 [
   {
+    "code": "mbc",
+    "name": "Mystery Booster Commander Edition",
+    "released": "2026-10-19",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "draft",
+    "limitedLabel": "draft booster",
+    "mtgjsonBoosterTypes": [
+      "draft"
+    ],
+    "extraSheetLabel": null
+  },
+  {
     "code": "fra",
     "name": "Reality Fracture",
     "released": "2026-10-02",
