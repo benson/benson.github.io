@@ -5,11 +5,11 @@ benson.perry@gmail.com | [bensonperry.com](https://bensonperry.com) | [linkedin]
 ## Experience
 
 ### Figma, NYC — Product Manager, Code
-**July 2023 - Present**
+**July 2023 - May 2026**
 - Led Dev Mode from open beta through GA, driving adoption across Figma's developer user base
 - Grew Dev Mode into one of Figma's largest revenue lines within its first year, then doubled new ARR in year two
 - Delivered a keynote-stage talk at Config on improving designer-developer collaboration, sharing the product philosophy behind Dev Mode
-- Currently leading product strategy for tools that bridge design and code, enabling bidirectional translation between design files and production codebases
+- Led product strategy for tools that bridge design and code, enabling bidirectional translation between design files and production codebases
 
 ### Asana, NYC — Lead Product Manager, Core Experience
 **July 2020 - February 2023**
