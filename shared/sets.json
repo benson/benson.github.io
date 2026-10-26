@@ -3186,6 +3186,21 @@
     "extraSheetLabel": null
   },
   {
+    "code": "ren",
+    "name": "Renaissance",
+    "released": "1995-08-01",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default"
+    ],
+    "extraSheetLabel": null
+  },
+  {
     "code": "rin",
     "name": "Rinascimento",
     "released": "1995-08-01",
@@ -3201,9 +3216,9 @@
     "extraSheetLabel": null
   },
   {
-    "code": "ren",
-    "name": "Renaissance",
-    "released": "1995-08-01",
+    "code": "bchr",
+    "name": "Chronicles Foreign Black Border",
+    "released": "1995-07-01",
     "boosterTypes": [
       "play"
     ],
