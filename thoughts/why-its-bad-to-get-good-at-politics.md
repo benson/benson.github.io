@@ -1,6 +1,6 @@
 # why it's bad to "get good at politics"
 
-i read a lot of posts [How I influence tech company politics as a staff software engineer](https://www.seangoedecke.com/how-to-influence-politics/) that describe how to operate successfully in a company that is run by "real political operators."
+i read a lot of posts (like [this one](https://www.seangoedecke.com/how-to-influence-politics/)) that describe how to operate successfully in a company that is run by "real political operators."
 
 i am taking the opposite stance: **if you are spending your time thinking about "how to influence politics" internally, you are working at an ineffective company, and you should leave as soon as you have the option to do so.** 
 
