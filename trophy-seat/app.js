@@ -15,7 +15,7 @@ import {
   validateDataset,
 } from './model.js?v=8';
 
-const CATALOG_URL = './data/index.json?v=1';
+const CATALOG_URL = './data/index.json';
 const SEEN_KEY = 'trophy-seat-seen-v1';
 const THEME_KEY = 'trophy-seat-theme';
 const PUBLIC_APP_URL = 'https://bensonperry.com/trophy-seat/';
@@ -280,7 +280,6 @@ function renderCurrentPack() {
       type="button"
       data-card-name="${escapeHtml(name)}"
       aria-label="pick ${escapeHtml(name)}"
-      style="animation-delay: ${Math.min(index * 14, 98)}ms"
     >
       ${imageMarkup(name, 'card-image', index < 7 ? 'eager' : 'lazy')}
     </button>
@@ -596,7 +595,7 @@ async function initialize() {
   initializeTheme();
   bindEvents();
   try {
-    const response = await fetch(CATALOG_URL);
+    const response = await fetch(CATALOG_URL, { cache: 'no-cache' });
     if (!response.ok) throw new Error(`Draft catalog returned ${response.status}.`);
     state.catalog = await response.json();
     if (!Array.isArray(state.catalog.sets) || !state.catalog.sets.length) {

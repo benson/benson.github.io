@@ -7,23 +7,23 @@ import { fileURLToPath } from 'node:url';
 import { createInterface } from 'node:readline';
 import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
+import { validateDataset } from '../model.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = join(HERE, '..');
 const FORMAT = 'PremierDraft';
 const DEFAULT_LIMIT = 50;
-const DEFAULT_SET = 'HOB';
 const PUBLIC_DATA_ROOT = 'https://17lands-public.s3.amazonaws.com/analysis_data/draft_data';
 const BASIC_LANDS = new Set(['Plains', 'Island', 'Swamp', 'Mountain', 'Forest']);
 const REQUEST_HEADERS = {
   Accept: 'application/json',
   'User-Agent': 'trophy-seat/1.2 (https://bensonperry.com/trophy-seat/)',
 };
-const SETS = [
-  { code: 'HOB', name: 'The Hobbit', legacy: true },
-  { code: 'MSH', name: 'Marvel Super Heroes' },
-  { code: 'SOS', name: 'Secrets of Strixhaven' },
-];
+const FILTERS_URL = 'https://www.17lands.com/data/filters';
+const SCRYFALL_SETS_URL = 'https://api.scryfall.com/sets';
+
+export class NoCompleteSeatsError extends Error {}
+export class IncompleteSeatError extends Error {}
 
 let lastRequestAt = 0;
 
@@ -97,7 +97,7 @@ async function fetchJson(url, cachePath, delay = 1600) {
 
     const canRetry = response.status === 429
       || (response.status === 403 && url.startsWith('https://www.17lands.com/'));
-    if (!canRetry || attempt === 4) throw new Error(`Request failed (${response.status}): ${url}`);
+    if (!canRetry || attempt === 4) throw Object.assign(new Error(`Request failed (${response.status}): ${url}`), { status: response.status });
     const retryAfter = Number(response.headers.get('retry-after')) * 1000;
     const fallback = url.startsWith('https://www.17lands.com/') ? attempt * 20_000 : attempt * 3_000;
     const wait = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : fallback;
@@ -160,9 +160,14 @@ async function trophyCandidates(setCode, targetCount) {
   for await (const line of lines) {
     if (!headerFields) {
       headerFields = parseCsvPrefix(line, Number.MAX_SAFE_INTEGER);
+      const expected = ['expansion', 'event_type', 'draft_id', 'draft_time', 'rank', 'event_match_wins', 'event_match_losses', 'pack_number', 'pick_number', 'pick'];
+      if (expected.some((name, index) => headerFields[index] !== name)) {
+        throw new Error(`Unexpected public draft schema for ${setCode}`);
+      }
       packColumns = headerFields
         .map((name, index) => ({ name: name.startsWith('pack_card_') ? name.slice(10) : '', index }))
         .filter(column => column.name);
+      if (!packColumns.length) throw new Error(`Public draft data for ${setCode} has no pack columns`);
       continue;
     }
     const fields = parseCsvPrefix(line, 10);
@@ -180,38 +185,49 @@ async function trophyCandidates(setCode, targetCount) {
     drafts.set(draftId, existing);
   }
 
+  if (!headerFields) throw new Error(`Empty public draft data for ${setCode}`);
   return [...drafts.values()]
     .filter(draft => draft.rows >= 40 && draft.firstPickCards?.length >= 12)
     .sort((left, right) => right.draftTime.localeCompare(left.draftTime))
     .slice(0, Math.max(targetCount + 30, targetCount * 2));
 }
 
-async function fetchSeat(setCode, candidate) {
+export async function fetchSeat(setCode, candidate, fetchData = fetchJson) {
   const { sourceId } = candidate;
   const cacheRoot = join(PROJECT_ROOT, '.cache', 'trophy-logs', setCode.toLowerCase());
   const draftUrl = `https://www.17lands.com/data/draft?draft_id=${sourceId}`;
   const previewUrl = `https://www.17lands.com/data/event_preview?draft_id=${sourceId}`;
-  const draft = await fetchJson(draftUrl, join(cacheRoot, `${sourceId}-draft.json`));
-  const preview = await fetchJson(previewUrl, join(cacheRoot, `${sourceId}-preview.json`));
-
-  if (draft.expansion !== setCode || preview.expansion !== setCode) {
-    throw new Error(`Seat ${sourceId} is not ${setCode}`);
+  let draft;
+  let preview;
+  try {
+    draft = await fetchData(draftUrl, join(cacheRoot, `${sourceId}-draft.json`));
+    preview = await fetchData(previewUrl, join(cacheRoot, `${sourceId}-preview.json`));
+  } catch (error) {
+    if (error.status === 404) throw new IncompleteSeatError(`Seat ${sourceId} is no longer public`);
+    throw error;
   }
-  if (Number(preview.wins) !== 7 || Number(preview.losses) > 2) {
-    throw new Error(`Seat ${sourceId} is not a 7-0, 7-1, or 7-2 trophy`);
+
+  if (draft?.expansion !== setCode || preview?.expansion !== setCode) {
+    throw new IncompleteSeatError(`Seat ${sourceId} is not ${setCode}`);
+  }
+  if (Number(preview.wins) !== 7 || ![0, 1, 2].includes(Number(preview.losses))) {
+    throw new IncompleteSeatError(`Seat ${sourceId} is not a 7-0, 7-1, or 7-2 trophy`);
   }
   if (!Array.isArray(draft.picks) || draft.picks.length < 40) {
-    throw new Error(`Seat ${sourceId} does not contain a complete draft log`);
+    throw new IncompleteSeatError(`Seat ${sourceId} does not contain a complete draft log`);
   }
   if (candidate.firstPick !== draft.picks[0]?.pick?.name
+    || !Array.isArray(candidate.firstPickCards)
     || !candidate.firstPickCards.includes(candidate.firstPick)) {
-    throw new Error(`Seat ${sourceId} does not match its exact public opening pack`);
+    throw new IncompleteSeatError(`Seat ${sourceId} does not match its exact public opening pack`);
   }
 
   const deckIndex = (preview.decks?.length || 0) - 1;
   const deck = preview.decks?.[deckIndex];
-  if (!deck) throw new Error(`Seat ${sourceId} has no recorded final build`);
-  return { sourceId, deckIndex, draft, preview, deck, firstPickCards: candidate.firstPickCards };
+  if (!deck) throw new IncompleteSeatError(`Seat ${sourceId} has no recorded final build`);
+  const seat = { sourceId, deckIndex, draft, preview, deck, firstPickCards: candidate.firstPickCards };
+  publicDraft(seat, setCode);
+  return seat;
 }
 
 async function fetchScryfallCards(setCode) {
@@ -278,7 +294,32 @@ function cardNamesFromSeat(seat) {
   return names;
 }
 
+export function sourceImageIndex(seats) {
+  const images = new Map();
+  for (const seat of seats) {
+    const cards = [
+      ...seat.draft.picks.flatMap(pick => [pick.pick, ...(pick.available || [])]),
+      ...Object.values(seat.preview.cards || {}),
+    ];
+    for (const card of cards) {
+      if (card?.name && /^https:\/\/cards\.17landscapes\.com\//.test(card.image_url || '')) {
+        images.set(card.name, card.image_url);
+      }
+    }
+  }
+  return images;
+}
+
+export function cardImages(name, imageUris, sourceImages) {
+  const sourceImage = sourceImages.get(name);
+  return {
+    imageSmall: sourceImage || imageUris.small,
+    imageNormal: sourceImage || imageUris.normal,
+  };
+}
+
 async function buildCardMetadata(seats, rawCards) {
+  const sourceImages = sourceImageIndex(seats);
   const byName = scryfallIndex(rawCards);
   const usedNames = new Set(seats.flatMap(seat => [...cardNamesFromSeat(seat)]));
   const output = {};
@@ -291,7 +332,8 @@ async function buildCardMetadata(seats, rawCards) {
       byName.set(normalizedName(name), card);
     }
     const imageUris = card.image_uris || card.card_faces?.[0]?.image_uris || {};
-    if (!imageUris.normal) throw new Error(`Missing Scryfall image for ${name}`);
+    const images = cardImages(name, imageUris, sourceImages);
+    if (!images.imageNormal) throw new Error(`Missing card image for ${name}`);
     output[name] = {
       name,
       basic: BASIC_LANDS.has(name),
@@ -301,8 +343,7 @@ async function buildCardMetadata(seats, rawCards) {
       manaValue: card.cmc,
       colors: card.colors || card.card_faces?.flatMap(face => face.colors || []) || [],
       typeLine: card.type_line,
-      imageSmall: imageUris.small,
-      imageNormal: imageUris.normal,
+      ...images,
       scryfall: card.scryfall_uri,
     };
   }
@@ -312,15 +353,19 @@ async function buildCardMetadata(seats, rawCards) {
 function countCards(ids, cardsById) {
   const counts = new Map();
   for (const id of ids || []) {
-    const name = cardsById[String(id)]?.name;
-    if (!name) throw new Error(`Missing 17Lands card metadata for Arena card ${id}`);
+    const name = cardsById?.[String(id)]?.name;
+    if (!name) throw new IncompleteSeatError(`Missing 17Lands card metadata for Arena card ${id}`);
     counts.set(name, (counts.get(name) || 0) + 1);
   }
   return [...counts].map(([name, count]) => ({ name, count }));
 }
 
 function finalDeck(seat) {
-  const groups = new Map((seat.deck.groups || []).map(group => [group.name.toLowerCase(), group.cards]));
+  if (!Array.isArray(seat.deck.groups) || seat.deck.groups.some(group => typeof group?.name !== 'string' || !Array.isArray(group.cards))) {
+    throw new IncompleteSeatError(`Seat ${seat.sourceId} has malformed deck groups`);
+  }
+  const groups = new Map(seat.deck.groups.map(group => [group.name.toLowerCase(), group.cards]));
+  if (!groups.get('maindeck')?.length) throw new IncompleteSeatError(`Seat ${seat.sourceId} has no main deck`);
   const colors = String(seat.deck.colors || '');
   return {
     mainColors: [...colors].filter(color => color === color.toUpperCase()),
@@ -331,9 +376,18 @@ function finalDeck(seat) {
 }
 
 function publicDraft(seat, setCode) {
-  const firstEight = seat.draft.picks.slice(0, 8);
-  if (firstEight.some(pick => !pick.pick?.name || !(pick.available || []).some(card => card.name === pick.pick.name))) {
-    throw new Error(`Seat ${seat.sourceId} has incomplete first-eight pack data`);
+  if (seat.draft.picks.some(pick => (
+    !pick || typeof pick.pick?.name !== 'string' || !pick.pick.name
+    || !Number.isInteger(Number(pick.pack_number)) || Number(pick.pack_number) < 0
+    || !Number.isInteger(Number(pick.pick_number)) || Number(pick.pick_number) < 0
+    || !Array.isArray(pick.available)
+    || pick.available.some(card => typeof card?.name !== 'string' || !card.name)
+    || !pick.available.some(card => card.name === pick.pick.name)
+  ))) {
+    throw new IncompleteSeatError(`Seat ${seat.sourceId} has incomplete pick data`);
+  }
+  if (!/^\d{4}-\d{2}-\d{2}/.test(seat.preview.first_pick_time || '')) {
+    throw new IncompleteSeatError(`Seat ${seat.sourceId} has no recorded draft date`);
   }
   return {
     id: `${setCode.toLowerCase()}-${createHash('sha256').update(seat.sourceId).digest('hex').slice(0, 10)}`,
@@ -351,19 +405,23 @@ function publicDraft(seat, setCode) {
   };
 }
 
-async function buildPublicSet(config, limit) {
+async function buildPublicSet(config, limit, existing) {
+  const publishedSources = new Set((existing?.drafts || []).map(draft => draft.sourceUrl));
+  const needed = Math.max(0, limit - (existing?.drafts.length || 0));
   const candidates = await trophyCandidates(config.code, limit);
   const seats = [];
   for (const candidate of candidates) {
-    if (seats.length >= limit) break;
+    if (seats.length >= needed) break;
+    if (publishedSources.has(`https://www.17lands.com/draft/${candidate.sourceId}`)) continue;
     try {
-      console.log(`Validating ${config.code} trophy seat ${seats.length + 1}/${limit}`);
+      console.log(`Validating ${config.code} new trophy seat ${seats.length + 1}/${needed}`);
       seats.push(await fetchSeat(config.code, candidate));
     } catch (error) {
+      if (!(error instanceof IncompleteSeatError)) throw error;
       console.warn(`Skipping ${config.code} ${candidate.sourceId}: ${error.message}`);
     }
   }
-  if (!seats.length) throw new Error(`No complete ${config.code} trophy seats were found`);
+  if (!seats.length) throw new NoCompleteSeatsError(`No new complete ${config.code} trophy seats were found`);
 
   const cards = await buildCardMetadata(seats, await fetchScryfallCards(config.code.toLowerCase()));
   return {
@@ -376,10 +434,41 @@ async function buildPublicSet(config, limit) {
       provider: '17Lands',
       page: 'https://www.17lands.com/public_datasets',
       usageGuidelines: 'https://www.17lands.com/usage_guidelines',
+      images: 'Exact card image URLs from 17Lands draft/event logs, with Scryfall image metadata as fallback.',
     },
     cards,
     drafts: seats.map(seat => publicDraft(seat, config.code)),
   };
+}
+
+export function mergeDatasets(existing, incoming, limit) {
+  if (!existing) return incoming;
+  const sources = new Set(existing.drafts.map(draft => draft.sourceUrl));
+  const ids = new Set(existing.drafts.map(draft => draft.id));
+  const additions = incoming.drafts.filter(draft => {
+    if (sources.has(draft.sourceUrl) || ids.has(draft.id)) return false;
+    sources.add(draft.sourceUrl);
+    ids.add(draft.id);
+    return true;
+  }).slice(0, Math.max(0, limit - existing.drafts.length));
+  if (!additions.length) return existing;
+  return {
+    ...existing,
+    generatedAt: incoming.generatedAt,
+    cards: { ...incoming.cards, ...existing.cards },
+    drafts: [...existing.drafts, ...additions],
+  };
+}
+
+export async function refreshDataset(config, limit, existing, build = buildPublicSet) {
+  if (existing?.drafts.length >= limit) return existing;
+  try {
+    return mergeDatasets(existing, await build(config, limit, existing), limit);
+  } catch (error) {
+    if (!(error instanceof NoCompleteSeatsError)) throw error;
+    console.log(`${config.code}: ${error.message}; preserving the published catalog`);
+    return existing || null;
+  }
 }
 
 async function writeDataset(dataset) {
@@ -389,46 +478,98 @@ async function writeDataset(dataset) {
   console.log(`Wrote ${dataset.drafts.length} verified ${dataset.set.code} trophy seats to ${path}`);
 }
 
+export function discoverSets(filters, scryfallSets, catalog, today = new Date().toISOString().slice(0, 10)) {
+  if (!filters.formats_by_expansion || typeof filters.formats_by_expansion !== 'object') {
+    throw new Error('17Lands format discovery is unavailable');
+  }
+  const byCode = new Map(scryfallSets.map(set => [set.code.toUpperCase(), set]));
+  const existingCodes = new Set(catalog.sets.map(set => set.code));
+  const releases = catalog.sets.map(set => byCode.get(set.code)?.released_at).filter(Boolean);
+  if (!releases.length) throw new Error('Cannot establish the existing catalog release dates');
+  const earliestRelease = releases.sort()[0];
+  const codes = new Set([
+    ...existingCodes,
+    ...Object.entries(filters.formats_by_expansion || {})
+      .filter(([, formats]) => formats.includes(FORMAT))
+      .map(([code]) => code),
+  ]);
+  return [...codes].flatMap(code => {
+    const set = byCode.get(code);
+    if (!/^[A-Z0-9]{3,}$/.test(code) || !set || set.released_at > today) return [];
+    if (!existingCodes.has(code)
+      && (set.released_at < earliestRelease || !['expansion', 'core', 'draft_innovation'].includes(set.set_type))) return [];
+    return [{ code, name: set.name, releaseDate: set.released_at }];
+  }).sort((left, right) => right.releaseDate.localeCompare(left.releaseDate) || left.code.localeCompare(right.code));
+}
+
+export function buildCatalog(datasets, previous) {
+  const sets = datasets.map(dataset => ({
+    code: dataset.set.code,
+    name: dataset.set.name,
+    draftCount: dataset.drafts.length,
+    dataUrl: `./data/${dataset.set.code.toLowerCase()}.json?v=${createHash('sha256').update(JSON.stringify(dataset)).digest('hex').slice(0, 12)}`,
+  }));
+  if (!sets.length) throw new Error('Refusing to publish an empty catalog');
+  const content = { version: 1, defaultSet: sets[0].code, sets };
+  const unchanged = previous?.defaultSet === content.defaultSet
+    && JSON.stringify(previous?.sets) === JSON.stringify(sets);
+  return { ...content, generatedAt: unchanged ? previous.generatedAt : new Date().toISOString() };
+}
+
+async function readRemoteJson(url) {
+  const response = await fetchWithRetries(url, { headers: REQUEST_HEADERS });
+  if (!response.ok) throw new Error(`Discovery failed (${response.status}): ${url}`);
+  return response.json();
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const requestedCodes = String(args.sets || SETS.map(set => set.code).join(','))
-    .split(',')
-    .map(code => code.trim().toUpperCase())
-    .filter(Boolean);
+  const requestedCodes = args.sets ? String(args.sets).split(',').map(code => code.trim().toUpperCase()).filter(Boolean) : null;
   const limit = Number(args.limit || DEFAULT_LIMIT);
+  if (!Number.isInteger(limit) || limit < 1) throw new Error('--limit must be a positive integer');
+  const catalogPath = join(PROJECT_ROOT, 'data', 'index.json');
+  const previous = await readCache(catalogPath);
+  if (!previous?.sets?.length) throw new Error('The existing catalog is required to preserve published seats');
+  const filters = await readRemoteJson(FILTERS_URL);
+  const scryfallSets = await readRemoteJson(SCRYFALL_SETS_URL);
+  const configs = discoverSets(filters, scryfallSets.data, previous);
+  for (const code of requestedCodes || []) {
+    if (!configs.some(config => config.code === code)) throw new Error(`Unknown or unreleased Premier Draft set: ${code}`);
+  }
   const datasets = [];
 
-  for (const config of SETS) {
-    if (!requestedCodes.includes(config.code)) continue;
-    if (config.legacy) {
-      datasets.push(JSON.parse(await readFile(join(PROJECT_ROOT, 'data', 'hob.json'), 'utf8')));
-      continue;
-    }
+  for (const config of configs) {
     const outputPath = join(PROJECT_ROOT, 'data', `${config.code.toLowerCase()}.json`);
     const existing = await readCache(outputPath);
-    const completeOpeningPacks = existing?.drafts?.every(draft => draft.picks?.[0]?.cards?.length >= 12);
-    if (existing?.drafts?.length >= limit && completeOpeningPacks) {
-      console.log(`Reusing ${existing.drafts.length} verified ${config.code} trophy seats`);
+    if (existing) validateDataset(existing);
+    if (existing?.drafts.length >= limit || (existing && requestedCodes && !requestedCodes.includes(config.code))) {
+      console.log(`Preserving ${existing.drafts.length} verified ${config.code} trophy seats`);
       datasets.push(existing);
       continue;
     }
-    const dataset = await buildPublicSet(config, limit);
-    await writeDataset(dataset);
+    if (requestedCodes && !requestedCodes.includes(config.code)) continue;
+    const url = `${PUBLIC_DATA_ROOT}/draft_data_public.${config.code}.${FORMAT}.csv.gz`;
+    const availability = await fetchWithRetries(url, { method: 'HEAD', headers: REQUEST_HEADERS });
+    if (availability.status === 404 || availability.status === 403) {
+      console.log(`No public draft dataset yet for ${config.code}; retaining any published seats`);
+      if (existing) datasets.push(existing);
+      continue;
+    }
+    if (!availability.ok) throw new Error(`Dataset availability check failed (${availability.status}): ${url}`);
+    const dataset = await refreshDataset(config, limit, existing);
+    if (!dataset) continue;
+    validateDataset(dataset);
+    if (dataset !== existing) await writeDataset(dataset);
     datasets.push(dataset);
   }
 
-  const catalog = {
-    version: 1,
-    generatedAt: new Date().toISOString(),
-    defaultSet: DEFAULT_SET,
-    sets: datasets.map(dataset => ({
-      code: dataset.set.code,
-      name: dataset.set.name,
-      draftCount: dataset.drafts.length,
-      dataUrl: `./data/${dataset.set.code.toLowerCase()}.json?v=1`,
-    })),
-  };
-  await writeFile(join(PROJECT_ROOT, 'data', 'index.json'), JSON.stringify(catalog));
+  for (const set of previous.sets) {
+    if (!datasets.some(dataset => dataset.set.code === set.code)) {
+      throw new Error(`Refusing to drop existing set ${set.code}`);
+    }
+  }
+  const catalog = buildCatalog(datasets, previous);
+  await writeFile(catalogPath, JSON.stringify(catalog));
   console.log(`Wrote catalog with ${catalog.sets.reduce((sum, set) => sum + set.draftCount, 0)} verified seats`);
 }
 
