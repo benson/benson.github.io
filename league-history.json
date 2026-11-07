@@ -1,6 +1,77 @@
 {
-  "blurb": "no games this week",
-  "recent": [],
+  "blurb": "played 14 aram mayhem games in the last week, went 7-7",
+  "recent": [
+    {
+      "gameId": "5674812575",
+      "startedAt": 1794007137493,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Ezreal",
+      "win": false,
+      "kills": 13,
+      "deaths": 12,
+      "assists": 25,
+      "damage": 85512,
+      "minutes": 22
+    },
+    {
+      "gameId": "5674646857",
+      "startedAt": 1793979043736,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Hecarim",
+      "win": true,
+      "kills": 24,
+      "deaths": 19,
+      "assists": 38,
+      "damage": 85871,
+      "minutes": 25
+    },
+    {
+      "gameId": "5674643050",
+      "startedAt": 1793978604231,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Cassiopeia",
+      "win": true,
+      "kills": 1,
+      "deaths": 0,
+      "assists": 2,
+      "damage": 992,
+      "minutes": 2
+    },
+    {
+      "gameId": "5674631628",
+      "startedAt": 1793977756929,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "Olaf",
+      "win": true,
+      "kills": 16,
+      "deaths": 9,
+      "assists": 25,
+      "damage": 27597,
+      "minutes": 13
+    },
+    {
+      "gameId": "5674395368",
+      "startedAt": 1793936701175,
+      "queueId": 2400,
+      "gameMode": "KIWI",
+      "queue": "aram mayhem",
+      "champion": "TwistedFate",
+      "win": false,
+      "kills": 9,
+      "deaths": 14,
+      "assists": 18,
+      "damage": 32933,
+      "minutes": 18
+    }
+  ],
   "ddragonVersion": "16.22.1",
-  "date": "2026-11-06"
+  "date": "2026-11-07"
 }
