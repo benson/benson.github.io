@@ -46,6 +46,9 @@ header {
 #orbit-strip {
   position: relative;
   font: inherit;
+  /* Reserve the 78-column, 17-row scene before its script loads. */
+  width: 78ch;
+  height: 17lh;
   color: var(--orbit-ink);
   white-space: pre;
   overflow: hidden;

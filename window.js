@@ -302,6 +302,7 @@
   const win = document.getElementById('orbit-win'), pre = document.getElementById('orbit-strip');
   const cap = document.getElementById('orbit-caption');
   const g = new Grid();
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let t = 0, visible = true, started = false, held = false;
   // freeze while the text is being selected, so it can be dragged over and copied
   win.addEventListener('pointerdown', () => { held = true; });
@@ -317,16 +318,20 @@
     Object.assign(cur, target);
     for (let i = 0; i < 60; i++) { g.clear(); step(g, t++); }
     tick();
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (reducedMotion) return;
     let last = 0;
     (function loop(ts) { if (ts - last > 50 && visible && !document.hidden && !selecting()) { last = ts; tick(); } requestAnimationFrame(loop); })(0);
+  }
+  async function refreshWeather() {
+    await fetchWeather();
+    if (reducedMotion) { Object.assign(cur, target); tick(); }
   }
   if (override) { applyOverride(); start(); }
   else {
     setLight(nyMinutes());
-    fetchWeather().then(start);
-    setTimeout(start, 1500);
-    setInterval(fetchWeather, 15 * 60 * 1000);
+    start();
+    refreshWeather();
+    setInterval(refreshWeather, 15 * 60 * 1000);
     setInterval(() => setLight(nyMinutes()), 60 * 1000);
   }
 })();
