@@ -1,5 +1,5 @@
 {
-  "blurb": "played 31 aram mayhem games in the last week, went 15-16",
+  "blurb": "played 27 aram mayhem games in the last week, went 12-15",
   "recent": [
     {
       "gameId": "5681160116",
@@ -72,6 +72,6 @@
       "minutes": 15
     }
   ],
-  "ddragonVersion": "16.22.1",
-  "date": "2026-11-17"
+  "ddragonVersion": "16.23.1",
+  "date": "2026-11-18"
 }
