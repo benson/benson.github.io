@@ -12,7 +12,8 @@
     "limitedLabel": "play",
     "mtgjsonBoosterTypes": [
       "collector",
-      "play"
+      "play",
+      "prerelease"
     ],
     "extraSheetLabel": null
   },
@@ -3203,8 +3204,8 @@
     "extraSheetLabel": null
   },
   {
-    "code": "rin",
-    "name": "Rinascimento",
+    "code": "ren",
+    "name": "Renaissance",
     "released": "1995-08-01",
     "boosterTypes": [
       "play"
@@ -3218,8 +3219,8 @@
     "extraSheetLabel": null
   },
   {
-    "code": "ren",
-    "name": "Renaissance",
+    "code": "rin",
+    "name": "Rinascimento",
     "released": "1995-08-01",
     "boosterTypes": [
       "play"
