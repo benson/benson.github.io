@@ -46,6 +46,8 @@
     "mtgjsonBoosterTypes": [
       "collector",
       "play",
+      "play-arena",
+      "prerelease",
       "promo",
       "promo-foil",
       "secret-lair-bundle-promo"
@@ -82,6 +84,7 @@
       "box-topper",
       "collector",
       "play",
+      "play-arena",
       "prerelease"
     ],
     "extraSheetLabel": null
