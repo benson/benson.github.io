@@ -3,7 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#fafafa">
   <title>benson perry</title>
+  <script>
+    (() => {
+      try {
+        const saved = localStorage.getItem('benson-theme');
+        const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      } catch {}
+    })();
+  </script>
   <meta name="description" content="ideas both good and bad">
   <meta property="og:title" content="benson perry">
   <meta property="og:description" content="ideas both good and bad">
@@ -17,9 +27,20 @@
   <!-- vellum tokens only — the page keeps its own minimal styling; component
        styles are class-gated so nothing applies without opting in -->
   <link rel="stylesheet" href="vellum-ui/vellum-ui.css">
-  <link rel="stylesheet" href="style.css?v=19">
+  <link rel="stylesheet" href="style.css?v=20">
 </head>
-<body>
+<body class="home">
+  <button id="theme-toggle" class="theme-toggle" type="button" aria-label="switch to dark mode" aria-pressed="false">
+    <svg class="theme-toggle-icon theme-toggle-icon-moon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M13.2 9.8A5.5 5.5 0 0 1 6.2 2.8a5.5 5.5 0 1 0 7 7z"/>
+    </svg>
+    <svg class="theme-toggle-icon theme-toggle-icon-sun" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="8" cy="8" r="2.8"/>
+      <path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1"/>
+    </svg>
+    <span class="theme-toggle-label">dark</span>
+  </button>
+
   <header>
     <h1>benson perry</h1>
     <p class="tagline">ideas both good and bad</p>
@@ -33,21 +54,22 @@
     </nav>
   </header>
 
-  <div id="orbit-win"><pre id="orbit-strip"></pre><p id="orbit-caption"></p></div>
+  <div class="winter-pine-viewport" id="heavy-snowfall-mount" role="img" aria-label="Animated ASCII winter pine forest with heavy snowfall">
+    <canvas id="heavy-snowfall-canvas" aria-hidden="true"></canvas>
+  </div>
 
   <section class="projects">
     <h2>projects</h2>
     <div class="project-group">
       <ul>
-        <li><span class="project-name"><a href="https://tomebound.app/">tomebound</a> <span class="project-label">[beta]</span> <span class="project-label project-label-new">[new]</span></span> <span class="desc">&mdash; manage a magic collection</span></li>
+        <li><span class="project-name"><a href="https://tomebound.app/">tomebound</a></span> <span class="desc">&mdash; manage a magic collection</span></li>
       </ul>
     </div>
     <div class="project-group">
       <h3>useful</h3>
       <ul>
-        <li><span class="project-name"><a href="/racebench/">racebench</a> <span class="project-label project-label-new">[new]</span></span> <span class="desc">— same prompt, different race</span> <a href="https://github.com/benson/racebench" class="github-link" aria-label="racebench on GitHub">[github]</a></li>
-        <li><span class="project-name"><a href="/recipeboy/">recipeboy</a> <span class="project-label project-label-new">[new]</span></span> <span class="desc">— a shared recipe box for links and loose notes</span> <a href="https://github.com/benson/recipeboy" class="github-link" aria-label="recipeboy on GitHub">[github]</a></li>
-        <li><span class="project-name"><a href="/concerts/">concerts</a> <span class="project-label project-label-new">[new]</span></span> <span class="desc">— every show i've filmed, tagged by band</span> <a href="https://github.com/benson/concerts" class="github-link" aria-label="concerts on GitHub">[github]</a></li>
+        <li><span class="project-name"><a href="/recipeboy/">recipeboy</a></span> <span class="desc">— a shared recipe box for links and loose notes</span> <a href="https://github.com/benson/recipeboy" class="github-link" aria-label="recipeboy on GitHub">[github]</a></li>
+        <li><span class="project-name"><a href="/concerts/">concerts</a></span> <span class="desc">— every show i've filmed, tagged by band</span> <a href="https://github.com/benson/concerts" class="github-link" aria-label="concerts on GitHub">[github]</a></li>
         <li><span class="project-name"><a href="/packcracker">pack cracker</a></span> <span class="desc">— mtg booster value guide</span> <a href="https://github.com/benson/packcracker" class="github-link" aria-label="pack cracker on GitHub">[github]</a></li>
         <li><span class="project-name"><a href="/poolbuilder">pool builder</a></span> <span class="desc">— sealed pool simulator</span> <a href="https://github.com/benson/poolbuilder" class="github-link" aria-label="pool builder on GitHub">[github]</a></li>
         <li><span class="project-name"><a href="/trophy-seat/">trophy seat</a></span> <span class="desc">— replay a real 7-win mtg draft</span> <a href="https://github.com/benson/benson.github.io/tree/master/trophy-seat" class="github-link" aria-label="trophy seat on GitHub">[github]</a></li>
@@ -57,11 +79,12 @@
       <h3>fun</h3>
       <ul>
         <li><span class="project-name"><a href="https://9albums.bensonperry.com/">9albums</a></span> <span class="desc">— my favorite albums, with song clips</span> <a href="https://github.com/benson/9albums" class="github-link" aria-label="9albums on GitHub">[github]</a></li>
-        <li><span class="project-name"><a href="/dorksim/">dork simulator</a> <span class="project-label project-label-new">[new]</span></span> <span class="desc">— a pixel pug you can boss around</span> <a href="https://github.com/benson/dorksim" class="github-link" aria-label="dork simulator on GitHub">[github]</a></li>
+        <li><span class="project-name"><a href="/dorksim/">dork simulator</a></span> <span class="desc">— a pixel pug you can boss around</span> <a href="https://github.com/benson/dorksim" class="github-link" aria-label="dork simulator on GitHub">[github]</a></li>
         <li><span class="project-name"><a href="/my-scene-web/">my scene</a></span> <span class="desc">— the 2003 my scene cd-rom, rebuilt in the browser</span> <a href="https://github.com/benson/my-scene-web" class="github-link" aria-label="my scene on GitHub">[github]</a></li>
         <li><span class="project-name"><a href="https://draculas.win/">draculas.win</a></span> <span class="desc">— dracula flow clip finder and soundboard</span></li>
         <li><span class="project-name"><a href="/lastlight/">lastlight</a></span> <span class="desc">— 1–4 player browser bullet-heaven game</span> <a href="https://github.com/benson/lastlight" class="github-link" aria-label="lastlight on GitHub">[github]</a></li>
         <li><span class="project-name"><a href="/survivor">survivor draft</a></span> <span class="desc">— perry family survivor draft</span> <a href="https://github.com/benson/survivor" class="github-link" aria-label="survivor draft on GitHub">[github]</a></li>
+        <li><span class="project-name"><a href="/racebench/">racebench</a></span> <span class="desc">— same prompt, different race</span> <a href="https://github.com/benson/racebench" class="github-link" aria-label="racebench on GitHub">[github]</a></li>
       </ul>
     </div>
     <div class="project-group">
@@ -150,6 +173,7 @@
 
   <footer>last updated october 2026</footer>
 
-  <script src="window.js?v=6"></script>
+  <script src="theme.js?v=1"></script>
+  <script src="heavy-snowfall.js?v=1"></script>
 </body>
 </html>

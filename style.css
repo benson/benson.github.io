@@ -6,18 +6,53 @@
 
 :root {
   color-scheme: light;
-  /* site-specific colors with no value-identical vellum token */
-  --paper: #f8f7f4;
+  /* site-specific colors */
+  --paper: #fafafa;
+  --ink: #000;
   --ink-soft: #767676;
-  --orbit-ink: #b0b0a8;
+  --nav-link: #666;
+  --nav-border: #ccc;
+  --link-border: #999;
+  --github-link: #999;
+  --github-border: #ccc;
+  --github-hover: #666;
+  --tip-bg: #fff;
+  --tip-border: #ddd;
+  --tip-text: #666;
   --tip-win-ink: #5a8a5a;
   --tip-loss-ink: #a05a5a;
+  --label-new-ink: #506a4c;
+  --album-border: rgba(0, 0, 0, 0.3);
+  --toggle-bg: rgba(250, 250, 250, 0.88);
+  --snowfall-bg: #fafafa;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #111112;
+  --ink: #ececec;
+  --ink-soft: #96969b;
+  --nav-link: #a6a6ab;
+  --nav-border: #38383d;
+  --link-border: #55555c;
+  --github-link: #7e7e85;
+  --github-border: #323237;
+  --github-hover: #b8b8be;
+  --tip-bg: #1c1c1f;
+  --tip-border: #34343a;
+  --tip-text: #a6a6ab;
+  --tip-win-ink: #7eb87e;
+  --tip-loss-ink: #cf7b7b;
+  --label-new-ink: #82ad7c;
+  --album-border: rgba(255, 255, 255, 0.18);
+  --toggle-bg: rgba(17, 17, 18, 0.88);
+  --snowfall-bg: #111112;
 }
 
 body {
   font-family: "Times New Roman", Times, Georgia, serif;
   background: var(--paper);
-  color: var(--vui-color-neutral-black, #000);
+  color: var(--ink);
   min-height: 100vh;
   max-width: 700px;
   margin: 0;
@@ -25,40 +60,89 @@ body {
   text-transform: lowercase;
 }
 
-a:focus-visible {
-  outline: var(--vui-focus-ring, 2px solid #000);
+body.home {
+  max-width: none;
+  padding: 40px 0;
+}
+
+body.home > header,
+body.home > section,
+body.home > footer {
+  max-width: 700px;
+  padding-left: 30px;
+  padding-right: 30px;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: var(--vui-focus-ring, 2px solid var(--ink));
   outline-offset: var(--vui-focus-ring-offset, 2px);
+}
+
+.theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 22px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid var(--nav-border);
+  border-radius: 999px;
+  background: var(--toggle-bg);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--ink-soft);
+  font-family: inherit;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  text-transform: lowercase;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background-color 120ms ease;
+}
+
+.theme-toggle:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.theme-toggle-icon {
+  width: 12px;
+  height: 12px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.theme-toggle-icon-sun {
+  display: none;
+}
+
+[data-theme="dark"] .theme-toggle-icon-moon {
+  display: none;
+}
+
+[data-theme="dark"] .theme-toggle-icon-sun {
+  display: block;
 }
 
 header {
   margin-bottom: 0;
 }
 
-#orbit-win {
+.winter-pine-viewport {
   position: relative;
-  display: inline-block;
-  margin: 20px 0;
-  font-family: "Courier New", Courier, monospace;
-  font-size: clamp(6.5px, 1.85vw, 10px);
-  line-height: 1.2;
-}
-
-#orbit-strip {
-  position: relative;
-  font: inherit;
-  /* Reserve the 78-column, 17-row scene before its script loads. */
-  width: 78ch;
-  height: 17lh;
-  color: var(--orbit-ink);
-  white-space: pre;
+  width: 100%;
+  height: 440px;
+  margin: 24px 0 32px;
+  background: var(--snowfall-bg);
   overflow: hidden;
 }
 
-#orbit-caption {
-  min-height: 1.2em;
-  margin-top: 4px;
-  color: var(--orbit-ink);
-  text-align: right;
+.winter-pine-viewport canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 h1 {
@@ -76,19 +160,20 @@ h1 {
 
 nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
 }
 
 nav a {
-  color: var(--vui-color-neutral-500, #666);
+  color: var(--nav-link);
   text-decoration: none;
   font-size: 0.9rem;
-  border-bottom: 1px solid var(--vui-color-neutral-200, #ccc);
+  border-bottom: 1px solid var(--nav-border);
 }
 
 nav a:hover {
-  color: var(--vui-color-neutral-black, #000);
-  border-bottom-color: var(--vui-color-neutral-black, #000);
+  color: var(--ink);
+  border-bottom-color: var(--ink);
 }
 
 h2 {
@@ -108,14 +193,14 @@ li {
 }
 
 li a {
-  color: var(--vui-color-neutral-black, #000);
+  color: var(--ink);
   text-decoration: none;
   font-size: 0.95rem;
-  border-bottom: 1px solid var(--vui-color-neutral-350, #999);
+  border-bottom: 1px solid var(--link-border);
 }
 
 li a:hover {
-  border-bottom-color: var(--vui-color-neutral-black, #000);
+  border-bottom-color: var(--ink);
 }
 
 .desc {
@@ -148,7 +233,7 @@ li a:hover {
 }
 
 .project-label-new {
-  color: #506a4c;
+  color: var(--label-new-ink);
 }
 
 .projects .github-link {
@@ -160,8 +245,8 @@ li a:hover {
 .wip {
   display: inline-block;
   font-size: 0.7rem;
-  color: var(--vui-color-neutral-350, #999);
-  border: 1px solid var(--vui-color-neutral-200, #ccc);
+  color: var(--github-link);
+  border: 1px solid var(--github-border);
   padding: 0 4px;
   border-radius: 3px;
   text-transform: lowercase;
@@ -175,15 +260,15 @@ li a:hover {
 }
 
 .github-link {
-  color: var(--vui-color-neutral-350, #999);
+  color: var(--github-link);
   font-size: 0.85rem;
   text-decoration: none;
-  border-bottom: 1px solid var(--vui-color-neutral-200, #ccc);
+  border-bottom: 1px solid var(--github-border);
 }
 
 .github-link:hover {
-  color: var(--vui-color-neutral-500, #666);
-  border-bottom-color: var(--vui-color-neutral-350, #999);
+  color: var(--github-hover);
+  border-bottom-color: var(--link-border);
 }
 
 #spotify-recent,
@@ -202,7 +287,7 @@ li a:hover {
   height: 42px;
   border-radius: 3px;
   display: block;
-  border: 1px solid rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--album-border);
 }
 
 .album-tip {
@@ -214,13 +299,13 @@ li a:hover {
   bottom: 48px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--vui-color-neutral-white, #fff);
-  border: 1px solid var(--vui-color-status-neutral-border, #ddd);
+  background: var(--tip-bg);
+  border: 1px solid var(--tip-border);
   border-radius: 4px;
   padding: 6px 10px;
   white-space: nowrap;
   font-size: 0.75rem;
-  color: var(--vui-color-neutral-500, #666);
+  color: var(--tip-text);
   z-index: 10;
 }
 
@@ -230,7 +315,7 @@ li a:hover {
 }
 
 .tip-track {
-  color: var(--vui-color-neutral-black, #000);
+  color: var(--ink);
 }
 
 .album-wrap:hover .album-tip,
@@ -284,13 +369,13 @@ li a:hover {
   bottom: 48px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--vui-color-neutral-white, #fff);
-  border: 1px solid var(--vui-color-status-neutral-border, #ddd);
+  background: var(--tip-bg);
+  border: 1px solid var(--tip-border);
   border-radius: 4px;
   padding: 6px 10px;
   white-space: nowrap;
   font-size: 0.75rem;
-  color: var(--vui-color-neutral-500, #666);
+  color: var(--tip-text);
   z-index: 10;
 }
 
@@ -337,6 +422,22 @@ footer {
 @media (max-width: 600px) {
   body {
     padding: 20px 15px;
+  }
+
+  body.home {
+    padding: 20px 0;
+  }
+
+  body.home > header,
+  body.home > section,
+  body.home > footer {
+    padding-left: 15px;
+    padding-right: 15px;
+  }
+
+  .theme-toggle {
+    top: 16px;
+    right: 15px;
   }
 
   #spotify-recent,
