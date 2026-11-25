@@ -3,22 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#fafafa">
   <title>thoughts — benson perry</title>
+  <script>
+    (() => {
+      try {
+        const saved = localStorage.getItem('benson-theme');
+        const dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+      } catch {}
+    })();
+  </script>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css?v=20">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
+    :root {
+      --code-bg: #eee;
+      --post-h3: #333;
+    }
+    [data-theme="dark"] {
+      --code-bg: #1e1e21;
+      --post-h3: #c8c8cd;
+    }
     .back {
       display: inline-block;
       margin-bottom: 30px;
-      color: #999;
+      color: var(--github-link);
       text-decoration: none;
       font-size: 0.9rem;
-      border-bottom: 1px solid #ccc;
+      border-bottom: 1px solid var(--nav-border);
     }
     .back:hover {
-      color: #000;
-      border-bottom-color: #000;
+      color: var(--ink);
+      border-bottom-color: var(--ink);
     }
     .post h1, .post h2, .post h3 {
       text-transform: none;
@@ -30,38 +48,49 @@
       text-transform: none;
     }
     .post h1 { font-size: 1.3rem; font-weight: 400; margin: 24px 0 12px; }
-    .post h2 { font-size: 1.1rem; font-weight: 400; color: #000; margin: 20px 0 10px; }
-    .post h3 { font-size: 1rem; font-weight: 400; color: #333; margin: 16px 0 8px; }
+    .post h2 { font-size: 1.1rem; font-weight: 400; color: var(--ink); margin: 20px 0 10px; }
+    .post h3 { font-size: 1rem; font-weight: 400; color: var(--post-h3); margin: 16px 0 8px; }
     .post p { margin-bottom: 14px; }
-    .post a { color: #000; border-bottom: 1px solid #000; text-decoration: none; }
-    .post a:hover { border-bottom-color: #666; }
+    .post a { color: var(--ink); border-bottom: 1px solid var(--ink); text-decoration: none; }
+    .post a:hover { border-bottom-color: var(--nav-link); }
     .post ul, .post ol { margin: 0 0 14px 20px; }
     .post li { margin-bottom: 4px; }
     .post code {
       font-family: monospace;
-      background: #eee;
+      background: var(--code-bg);
       padding: 1px 4px;
       font-size: 0.9em;
     }
     .post pre {
-      background: #eee;
+      background: var(--code-bg);
       padding: 12px;
       overflow-x: auto;
       margin-bottom: 14px;
     }
     .post pre code { background: none; padding: 0; }
     .post blockquote {
-      border-left: 2px solid #ccc;
+      border-left: 2px solid var(--nav-border);
       padding-left: 16px;
-      color: #666;
+      color: var(--nav-link);
       margin: 0 0 14px 0;
     }
     .post img { max-width: 100%; }
   </style>
 </head>
 <body>
+  <button id="theme-toggle" class="theme-toggle" type="button" aria-label="switch to dark mode" aria-pressed="false">
+    <svg class="theme-toggle-icon theme-toggle-icon-moon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M13.2 9.8A5.5 5.5 0 0 1 6.2 2.8a5.5 5.5 0 1 0 7 7z"/>
+    </svg>
+    <svg class="theme-toggle-icon theme-toggle-icon-sun" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="8" cy="8" r="2.8"/>
+      <path d="M8 1.5v1.6M8 12.9v1.6M1.5 8h1.6M12.9 8h1.6M3.4 3.4l1.1 1.1M11.5 11.5l1.1 1.1M12.6 3.4l-1.1 1.1M4.5 11.5l-1.1 1.1"/>
+    </svg>
+    <span class="theme-toggle-label">dark</span>
+  </button>
   <a href="/" class="back">← back</a>
   <div class="post" id="post"></div>
+  <script src="/theme.js?v=1"></script>
   <script>
     const params = new URLSearchParams(window.location.search);
     const post = params.get('post');

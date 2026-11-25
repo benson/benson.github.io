@@ -17,7 +17,7 @@ function main() {
   const root = path.resolve(__dirname, '..');
   const timestamp = execFileSync('git', [
     'log', '-1', '--format=%cI', '--',
-    'index.html', 'style.css', 'window.js', 'vellum-ui/vellum-ui.css',
+    'index.html', 'style.css', 'heavy-snowfall.js', 'theme.js', 'vellum-ui/vellum-ui.css',
   ], { cwd: root, encoding: 'utf8' }).trim();
   if (!timestamp) throw new Error('No homepage commit found');
   const file = path.join(root, 'index.html');
