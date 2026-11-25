@@ -22,9 +22,9 @@
 
     // Baked-in configuration: FINE density, DEEP ink, 1.0x speed, Light mode default
     const CONFIG = {
-      cellW: 5.2,
-      cellH: 9.2,
-      fontSize: 8.6,
+      cellW: 5.4,
+      cellH: 7.4,
+      fontSize: 7.6,
       bg: initialPalette.bg,
       inkRGB: initialPalette.inkRGB,
       deepInk: true,
@@ -135,9 +135,9 @@
     // Deterministic world-space tree generator
     // Layers: 0 = far timberline, 1 = mid forest, 2 = foreground hero spruces
     const LAYER_SPECS = [
-      { id: 0, spacing: 7,  minH: 14, maxH: 26, minW: 3.2, maxW: 5.5, baseY: 8,  inkMin: 0.22, inkMax: 0.42, bold: 0, sway: 0.15 },
-      { id: 1, spacing: 11, minH: 20, maxH: 36, minW: 4.5, maxW: 8.0, baseY: 3,  inkMin: 0.48, inkMax: 0.76, bold: 1, sway: 0.35 },
-      { id: 2, spacing: 17, minH: 26, maxH: 46, minW: 6.0, maxW: 10.5, baseY: 0, inkMin: 0.80, inkMax: 1.00, bold: 1, sway: 0.55 },
+      { id: 0, spacing: 7,  minH: 11, maxH: 20, minW: 3.4, maxW: 5.8, baseY: 6,  inkMin: 0.22, inkMax: 0.42, bold: 0, sway: 0.15 },
+      { id: 1, spacing: 11, minH: 16, maxH: 28, minW: 4.8, maxW: 8.5, baseY: 2,  inkMin: 0.48, inkMax: 0.76, bold: 1, sway: 0.35 },
+      { id: 2, spacing: 17, minH: 20, maxH: 35, minW: 6.5, maxW: 11.2, baseY: 0, inkMin: 0.80, inkMax: 1.00, bold: 1, sway: 0.55 },
     ];
 
     // Cache trees per world slot so resizing reveals new trees seamlessly without shifting existing ones
@@ -164,8 +164,8 @@
       const cx = slot * spec.spacing + (r1 - 0.5) * spec.spacing * 0.72;
       const height = Math.round(spec.minH + r2 * (spec.maxH - spec.minH));
       const maxRadius = spec.minW + r3 * (spec.maxW - spec.minW);
-      const baseY = spec.baseY + Math.floor(r4 * 3);
-      const tiers = Math.max(4, Math.floor(height / (layerId === 2 ? 4.2 : 3.6)));
+      const baseY = spec.baseY + Math.floor(r4 * 2);
+      const tiers = Math.max(4, Math.floor(height / (layerId === 2 ? 3.5 : 3.1)));
       const stiffness = 0.65 + hash1(seed + 5) * 0.7;
       const asym = (hash1(seed + 6) - 0.5) * 0.28;
 
@@ -329,9 +329,9 @@
           let lvl = 0;
           let bold = 0;
 
-          const ridgeH = 18 + Math.sin(wx * 0.035) * 6 + fbm2(wx * 0.05, 1.3, 2) * 11;
-          if (wy < ridgeH && wy > 6) {
-            const depthFade = (ridgeH - wy) / 14;
+          const ridgeH = 14 + Math.sin(wx * 0.035) * 4.5 + fbm2(wx * 0.05, 1.3, 2) * 8.5;
+          if (wy < ridgeH && wy > 4) {
+            const depthFade = (ridgeH - wy) / 11;
             const n = hash2(wx, wy);
             if (n > 0.35) {
               ch = pick(MIST_BANK, wx, wy, 3);
@@ -350,7 +350,7 @@
 
           // 3. Volumetric mist band between far & mid forest
           const mist1 = fbm2(wx * 0.045 - t * 0.14, wy * 0.08 + 2.1, 3);
-          const mistBand1 = Math.exp(-Math.pow((wy - 13) / 8.5, 2));
+          const mistBand1 = Math.exp(-Math.pow((wy - 10) / 6.5, 2));
           if (mist1 * mistBand1 > 0.42) {
             ch = mist1 * mistBand1 > 0.56 ? ' ' : pick(MIST_BANK, wx, wy, 7);
             lvl = ch === ' ' ? 0 : 1;
@@ -368,7 +368,7 @@
 
           // 5. Luminous fog halo directly behind foreground conifers (key for Notan separation)
           const mist2 = fbm2(wx * 0.038 - t * 0.22, wy * 0.09 + 7.4, 3);
-          const mistBand2 = Math.exp(-Math.pow((wy - 9) / 7.0, 2));
+          const mistBand2 = Math.exp(-Math.pow((wy - 7) / 5.5, 2));
           if (mist2 * mistBand2 > 0.44) {
             ch = ' ';
             lvl = 0;
