@@ -133,8 +133,8 @@ header {
 .winter-pine-viewport {
   position: relative;
   width: 100%;
-  height: 440px;
-  margin: 24px 0 32px;
+  height: 280px;
+  margin: 20px 0 28px;
   background: var(--snowfall-bg);
   overflow: hidden;
 }
