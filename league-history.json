@@ -1,5 +1,5 @@
 {
-  "blurb": "played 6 aram mayhem games in the last week, went 1-5",
+  "blurb": "played 2 aram mayhem games in the last week, went 1-1",
   "recent": [
     {
       "gameId": "5682875285",
@@ -28,50 +28,8 @@
       "assists": 15,
       "damage": 33397,
       "minutes": 18
-    },
-    {
-      "gameId": "5682547803",
-      "startedAt": 1795060221802,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Xerath",
-      "win": false,
-      "kills": 12,
-      "deaths": 9,
-      "assists": 20,
-      "damage": 35837,
-      "minutes": 20
-    },
-    {
-      "gameId": "5682452271",
-      "startedAt": 1795054496406,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Vladimir",
-      "win": false,
-      "kills": 13,
-      "deaths": 9,
-      "assists": 13,
-      "damage": 53217,
-      "minutes": 19
-    },
-    {
-      "gameId": "5682328809",
-      "startedAt": 1795042890758,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Xayah",
-      "win": false,
-      "kills": 11,
-      "deaths": 10,
-      "assists": 13,
-      "damage": 21462,
-      "minutes": 17
     }
   ],
   "ddragonVersion": "16.23.1",
-  "date": "2026-11-25"
+  "date": "2026-11-26"
 }
