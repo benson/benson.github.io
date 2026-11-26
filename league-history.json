@@ -1,5 +1,5 @@
 {
-  "blurb": "played 2 aram mayhem games in the last week, went 1-1",
+  "blurb": "played 1 aram mayhem game in the last week, went 1-0",
   "recent": [
     {
       "gameId": "5682875285",
@@ -14,20 +14,6 @@
       "assists": 36,
       "damage": 96905,
       "minutes": 21
-    },
-    {
-      "gameId": "5682553581",
-      "startedAt": 1795061575259,
-      "queueId": 2400,
-      "gameMode": "KIWI",
-      "queue": "aram mayhem",
-      "champion": "Sivir",
-      "win": false,
-      "kills": 10,
-      "deaths": 15,
-      "assists": 15,
-      "damage": 33397,
-      "minutes": 18
     }
   ],
   "ddragonVersion": "16.23.1",
