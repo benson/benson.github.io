@@ -3207,8 +3207,8 @@
     "extraSheetLabel": null
   },
   {
-    "code": "ren",
-    "name": "Renaissance",
+    "code": "rin",
+    "name": "Rinascimento",
     "released": "1995-08-01",
     "boosterTypes": [
       "play"
@@ -3222,8 +3222,8 @@
     "extraSheetLabel": null
   },
   {
-    "code": "rin",
-    "name": "Rinascimento",
+    "code": "ren",
+    "name": "Renaissance",
     "released": "1995-08-01",
     "boosterTypes": [
       "play"
@@ -3270,6 +3270,22 @@
     "code": "ice",
     "name": "Ice Age",
     "released": "1995-06-03",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default",
+      "starter"
+    ],
+    "extraSheetLabel": null
+  },
+  {
+    "code": "4bb",
+    "name": "Fourth Edition Foreign Black Border",
+    "released": "1995-04-01",
     "boosterTypes": [
       "play"
     ],
@@ -3361,6 +3377,22 @@
   {
     "code": "3ed",
     "name": "Revised Edition",
+    "released": "1994-04-11",
+    "boosterTypes": [
+      "play"
+    ],
+    "defaultBoosterType": "play",
+    "limitedBoosterType": "default",
+    "limitedLabel": "booster",
+    "mtgjsonBoosterTypes": [
+      "default",
+      "starter"
+    ],
+    "extraSheetLabel": null
+  },
+  {
+    "code": "fbb",
+    "name": "Foreign Black Border",
     "released": "1994-04-11",
     "boosterTypes": [
       "play"
